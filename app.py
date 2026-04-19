@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+from datetime import datetime
 
 # -----------------------
 # DB Setup
@@ -26,6 +27,21 @@ CREATE TABLE IF NOT EXISTS expenses (
 conn.commit()
 
 # -----------------------
+# Category Icons
+# -----------------------
+CATEGORY_ICONS = {
+    "Food": "🍔",
+    "Rent": "🏠",
+    "Travel": "✈️",
+    "Shopping": "🛍️",
+    "Bills": "💡",
+    "Entertainment": "🎬"
+}
+
+def get_icon(category):
+    return CATEGORY_ICONS.get(category, "💰")
+
+# -----------------------
 # Functions
 # -----------------------
 def insert_data(row):
@@ -45,7 +61,7 @@ def load_data():
 st.set_page_config(page_title="Budget Dashboard", layout="wide")
 st.title("💰 Smart Budget Dashboard")
 
-menu = st.sidebar.radio("Menu", ["Dashboard", "Upload File"])
+menu = st.sidebar.radio("Menu", ["Dashboard", "Upload File", "Add Entry"])
 
 # -----------------------
 # Upload Section
@@ -56,7 +72,6 @@ if menu == "Upload File":
     if file:
         df = pd.read_excel(file)
 
-        # Rename columns based on your sheet
         df = df.rename(columns={
             "Date": "date",
             "Expense": "description",
@@ -72,7 +87,6 @@ if menu == "Upload File":
 
         df = df.fillna("")
 
-        # Insert safely
         for _, row in df.iterrows():
             insert_data([
                 str(row.get("date", "")),
@@ -90,19 +104,52 @@ if menu == "Upload File":
         st.success("✅ Data uploaded successfully!")
 
 # -----------------------
+# Add Entry (NEW)
+# -----------------------
+elif menu == "Add Entry":
+    st.subheader("➕ Add Expense / Income")
+
+    date = st.date_input("Date", datetime.today())
+    description = st.text_input("Description")
+    category = st.text_input("Category")
+    amount = st.number_input("Amount")
+    paid_by = st.text_input("Paid By")
+    paid_via = st.selectbox("Paid Via", ["UPI", "Card", "Cash", "Bank"])
+    bank = st.text_input("Bank")
+    status = st.selectbox("Status", ["Paid", "Pending"])
+    notes = st.text_input("Notes")
+    recurring = st.selectbox("Recurring", ["", "Recurring"])
+
+    if st.button("Save Entry"):
+        insert_data([
+            str(date),
+            description,
+            category,
+            amount,
+            paid_by,
+            paid_via,
+            bank,
+            status,
+            notes,
+            recurring
+        ])
+        st.success("✅ Entry added successfully!")
+
+# -----------------------
 # Dashboard Section
 # -----------------------
 elif menu == "Dashboard":
     df = load_data()
 
     if df.empty:
-        st.warning("No data available. Please upload file.")
+        st.warning("No data available.")
     else:
         df["date"] = pd.to_datetime(df["date"], errors='coerce')
 
         # KPIs
         total_spend = df["amount"].sum()
-        recurring_spend = df[df["recurring"].str.lower() == "recurring"]["amount"].sum()
+        recurring_df = df[df["recurring"].str.lower() == "recurring"]
+        recurring_spend = recurring_df["amount"].sum()
 
         col1, col2 = st.columns(2)
         col1.metric("Total Spend", f"₹{total_spend:,.0f}")
@@ -115,24 +162,31 @@ elif menu == "Dashboard":
         st.subheader("📈 Monthly Spending Trend")
         st.line_chart(monthly)
 
-        # Category Breakdown
+        # Category Breakdown with Icons
         st.subheader("📊 Category Breakdown")
         category = df.groupby("category")["amount"].sum().sort_values(ascending=False)
-        st.bar_chart(category)
 
-        # Spending by Person
+        cat_display = category.copy()
+        cat_display.index = [f"{get_icon(cat)} {cat}" for cat in cat_display.index]
+
+        st.bar_chart(cat_display)
+
+        # Recurring Section (NEW)
+        st.subheader("🔁 Recurring Expenses Analysis")
+
+        if not recurring_df.empty:
+            recurring_month = recurring_df.groupby("month")["amount"].sum()
+            st.line_chart(recurring_month)
+
+            recurring_cat = recurring_df.groupby("category")["amount"].sum()
+            st.bar_chart(recurring_cat)
+        else:
+            st.info("No recurring expenses found.")
+
+        # Paid By
         st.subheader("👤 Spending by Person")
         person = df.groupby("paid_by")["amount"].sum()
         st.bar_chart(person)
-
-        # Payment Method
-        st.subheader("💳 Payment Method")
-        payment = df.groupby("paid_via")["amount"].sum()
-        st.bar_chart(payment)
-
-        # Top Categories Table
-        st.subheader("🔥 Top Categories")
-        st.dataframe(category.head(5))
 
         # Insights
         st.subheader("🧠 Insights")
@@ -141,4 +195,4 @@ elif menu == "Dashboard":
             st.write(f"👉 Highest spending category: **{category.idxmax()}**")
 
         if recurring_spend > total_spend * 0.5:
-            st.warning("⚠️ More than 50% of your expenses are recurring!")
+            st.warning("⚠️ High recurring expenses detected!")
