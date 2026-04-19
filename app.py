@@ -119,6 +119,7 @@ if menu == "Dashboard" and not df.empty:
         )
 
         fig = px.bar(cat, x="category", y="amount", text="label")
+
         fig.update_traces(textposition="outside")
         fig.update_layout(height=400, yaxis=dict(visible=False))
 
@@ -156,10 +157,7 @@ if menu == "Dashboard" and not df.empty:
                 hole=0.5
             )
 
-            fig2.update_traces(
-                textinfo="percent+label",
-                hovertemplate="<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}"
-            )
+            fig2.update_traces(textinfo="percent+label")
 
             st.plotly_chart(fig2, use_container_width=True)
 
@@ -198,9 +196,7 @@ elif menu == "Compare" and not df.empty:
     else:
         st.info("No difference")
 
-    # -----------------------
-    # TOP 10 CATEGORY COMPARE WITH %
-    # -----------------------
+    # Top 10 Compare
     st.markdown("### 📊 Top 10 Category Comparison")
 
     cat1 = df1.groupby("category")["amount"].sum()
@@ -240,6 +236,12 @@ elif menu == "Compare" and not df.empty:
     )
 
     fig.update_traces(textposition="outside")
-    fig.update_layout(height=500)
+
+    # 🔥 CLEAN LOOK FIX
+    fig.update_layout(
+        height=500,
+        yaxis=dict(visible=False),
+        xaxis_title=""
+    )
 
     st.plotly_chart(fig, use_container_width=True)
