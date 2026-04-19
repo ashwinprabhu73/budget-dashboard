@@ -11,7 +11,7 @@ def extract_sheet_id(input_text):
     return input_text
 
 # -----------------------
-# Load ALL Tabs (IMPORTANT CHANGE)
+# Load Google Sheet (ALL TABS)
 # -----------------------
 def load_google_sheet_all_tabs(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -19,7 +19,6 @@ def load_google_sheet_all_tabs(sheet_id):
     all_sheets = pd.read_excel(url, sheet_name=None)
 
     df_list = []
-
     for sheet_name, sheet_data in all_sheets.items():
         sheet_data["sheet_name"] = sheet_name
         df_list.append(sheet_data)
@@ -35,7 +34,6 @@ def load_google_sheet_all_tabs(sheet_id):
     })
 
     df = df.fillna("")
-
     return df
 
 # -----------------------
@@ -57,6 +55,9 @@ if sheet_input:
     if df.empty:
         st.warning("No data found")
     else:
+        # -----------------------
+        # Date Processing
+        # -----------------------
         df["date"] = pd.to_datetime(df["date"], errors="coerce")
         df = df.dropna(subset=["date"])
 
@@ -66,28 +67,60 @@ if sheet_input:
 
         df = df.sort_values("month_num")
 
-        # Year selection
+        # -----------------------
+        # Year Selection
+        # -----------------------
         years = sorted(df["year"].unique())
         selected_year = st.selectbox("📅 Select Year", years)
 
         year_df = df[df["year"] == selected_year]
 
-        # Total + Avg
-        yearly_total = year_df["amount"].sum()
-        month_count = year_df["month_num"].nunique()
+        # -----------------------
+        # Separate IPO & Expenses
+        # -----------------------
+        ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
+        expense_df = year_df[year_df["category"].str.lower() != "ipo"]
+
+        # -----------------------
+        # Total + Avg (ONLY EXPENSES)
+        # -----------------------
+        yearly_total = expense_df["amount"].sum()
+
+        month_count = expense_df["month_num"].nunique()
         avg_monthly = yearly_total / month_count if month_count else 0
 
-        st.markdown("### 💰 Total Spend")
+        st.markdown("### 💰 Total Spend (Excl. IPO)")
         st.success(f"₹{yearly_total:,.0f}")
         st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
 
-        # Month selection
+        # -----------------------
+        # Month Selection
+        # -----------------------
         months = year_df.sort_values("month_num")["month"].unique()
         selected_month = st.selectbox("📊 Select Month", months)
 
-        filtered = year_df[year_df["month"] == selected_month]
+        # -----------------------
+        # IPO SUMMARY (NEW 🔥)
+        # -----------------------
+        st.markdown("### 💼 IPO Summary")
 
-        # Chart
+        ipo_month = ipo_df[ipo_df["month"] == selected_month]
+
+        ipo_total = ipo_month["amount"].sum()
+        ipo_count = len(ipo_month)
+
+        col1, col2 = st.columns(2)
+        col1.metric("IPO Amount", f"₹{ipo_total:,.0f}")
+        col2.metric("IPO Entries", ipo_count)
+
+        # -----------------------
+        # Filter Expenses (exclude IPO)
+        # -----------------------
+        filtered = expense_df[expense_df["month"] == selected_month]
+
+        # -----------------------
+        # Category Chart
+        # -----------------------
         st.subheader(f"📊 Category Breakdown - {selected_month}")
 
         cat = filtered.groupby("category")["amount"].sum().reset_index()
@@ -97,14 +130,22 @@ if sheet_input:
             cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
             fig = px.bar(cat, x="category", y="amount", text="label")
+
             fig.update_traces(textposition="outside")
-            fig.update_layout(height=400, yaxis=dict(visible=False))
+            fig.update_layout(
+                height=400,
+                yaxis=dict(visible=False),
+                xaxis_title="",
+                yaxis_title=""
+            )
 
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("No data for this month")
+            st.info("No expense data for this month")
 
-        # Recurring
+        # -----------------------
+        # Recurring Section
+        # -----------------------
         st.subheader("🔁 Recurring Breakdown")
 
         rec = filtered[filtered["recurring"].str.lower() == "recurring"]
@@ -114,8 +155,12 @@ if sheet_input:
             rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
             fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
+
             fig2.update_traces(textposition="outside")
-            fig2.update_layout(height=400, yaxis=dict(visible=False))
+            fig2.update_layout(
+                height=400,
+                yaxis=dict(visible=False)
+            )
 
             st.plotly_chart(fig2, use_container_width=True)
         else:
