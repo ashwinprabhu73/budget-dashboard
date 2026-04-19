@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # -----------------------
-# PREMIUM UI (SAFE)
+# PREMIUM UI (NO BEHAVIOR CHANGE)
 # -----------------------
 st.set_page_config(layout="wide")
 
@@ -32,13 +32,33 @@ h1, h2, h3 {
     font-size: 13px;
     color: #7a766f;
 }
+
+/* GOLD IPO CARD */
+.gold-card {
+    background: linear-gradient(135deg, #fdf6e3, #f7e7b6);
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #e6d38a;
+    box-shadow: 0 6px 18px rgba(180,150,50,0.15);
+}
+.gold-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #5a4a1f;
+    margin-bottom: 8px;
+}
+.gold-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #3d3212;
+}
 </style>
 """, unsafe_allow_html=True)
 
 st.title("💰 Smart Budget Dashboard")
 
 # -----------------------
-# HELPERS
+# HELPERS (UNCHANGED)
 # -----------------------
 def extract_sheet_id(input_text):
     if "docs.google.com" in input_text:
@@ -105,7 +125,7 @@ if menu == "Dashboard" and not df.empty:
     yearly_total = expense_df["amount"].sum()
     monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
-    # Premium Cards
+    # Premium Cards (UNCHANGED LOGIC)
     col1, col2 = st.columns(2)
 
     with col1:
@@ -124,15 +144,23 @@ if menu == "Dashboard" and not df.empty:
         </div>
         """, unsafe_allow_html=True)
 
-    # IPO
-    st.markdown("### 💼 IPO Summary")
+    # -----------------------
+    # IPO (GOLD CARD ONLY CHANGE)
+    # -----------------------
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
-    c1, c2 = st.columns(2)
-    c1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
-    c2.metric("IPO Entries", len(ipo_month))
+    ipo_amount = ipo_month['amount'].sum()
+    ipo_count = len(ipo_month)
 
-    # Category
+    st.markdown(f"""
+    <div class="gold-card">
+        <div class="gold-title">💼 IPO Summary</div>
+        <div class="gold-value">Amount: ₹{ipo_amount:,.0f}</div>
+        <div class="gold-value">Entries: {ipo_count}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # CATEGORY (UNCHANGED)
     filtered = expense_df[expense_df["month"] == selected_month]
 
     st.subheader(f"📊 Category Breakdown - {selected_month}")
@@ -152,7 +180,7 @@ if menu == "Dashboard" and not df.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # Others
+    # OTHERS (UNCHANGED)
     others_data = filtered[filtered["category"].str.lower() == "others"]
 
     if not others_data.empty:
@@ -178,7 +206,7 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
-# COMPARE (RESTORED ✅)
+# COMPARE (UNCHANGED)
 # =======================
 elif menu == "Compare" and not df.empty:
 
