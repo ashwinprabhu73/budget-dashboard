@@ -105,7 +105,11 @@ if menu == "Dashboard" and not df.empty:
     # -----------------------
     filtered = expense_df[expense_df["month"] == selected_month]
 
-    st.subheader(f"📊 Category Breakdown - {selected_month}")
+    monthly_total = filtered["amount"].sum()
+
+    st.subheader(
+        f"📊 Category Breakdown - {selected_month} | ₹{monthly_total:,.0f}"
+    )
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
     cat = cat.sort_values(by="amount", ascending=False)
