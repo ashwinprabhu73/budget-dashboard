@@ -114,23 +114,21 @@ if menu == "Dashboard" and not df.empty:
 
         total = cat["amount"].sum()
 
-        # ADD % COLUMN
+        # Add %
         cat["percent"] = (cat["amount"] / total) * 100
-
         cat["label"] = cat.apply(
             lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
         )
 
-        # BAR CHART
+        # Bar chart
         fig = px.bar(cat, x="category", y="amount", text="label")
-
         fig.update_traces(textposition="outside")
         fig.update_layout(height=400, yaxis=dict(visible=False))
 
         st.plotly_chart(fig, use_container_width=True)
 
         # -----------------------
-        # OTHERS BREAKDOWN (ONLY "Others" CATEGORY)
+        # OTHERS BREAKDOWN
         # -----------------------
         others_data = filtered[filtered["category"].str.lower() == "others"]
 
@@ -139,8 +137,26 @@ if menu == "Dashboard" and not df.empty:
 
             others_group = others_data.groupby("description")["amount"].sum().reset_index()
 
+            total_others = others_group["amount"].sum()
+
+            others_group["percent"] = (others_group["amount"] / total_others) * 100
+
+            major = others_group[others_group["percent"] >= 1]
+            minor = others_group[others_group["percent"] < 1]
+
+            misc_total = minor["amount"].sum()
+
+            if misc_total > 0:
+                major = pd.concat([
+                    major,
+                    pd.DataFrame([{
+                        "description": "Miscellaneous",
+                        "amount": misc_total
+                    }])
+                ])
+
             fig2 = px.pie(
-                others_group,
+                major,
                 names="description",
                 values="amount",
                 hole=0.5
@@ -150,6 +166,8 @@ if menu == "Dashboard" and not df.empty:
                 textinfo="percent+label",
                 hovertemplate="<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}"
             )
+
+            fig2.update_layout(height=400)
 
             st.plotly_chart(fig2, use_container_width=True)
 
