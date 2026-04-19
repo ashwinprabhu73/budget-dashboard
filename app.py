@@ -11,7 +11,7 @@ def extract_sheet_id(input_text):
     return input_text
 
 # -----------------------
-# Load Google Sheet (ALL TABS)
+# Load Google Sheet
 # -----------------------
 def load_google_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -24,7 +24,7 @@ def load_google_sheet(sheet_id):
     return pd.concat(df_list, ignore_index=True)
 
 # -----------------------
-# Load Excel Upload
+# Load Excel
 # -----------------------
 def load_excel(file):
     all_sheets = pd.read_excel(file, sheet_name=None)
@@ -85,7 +85,7 @@ elif source == "Upload Excel":
         df = load_excel(file)
 
 # -----------------------
-# Process
+# Process Data
 # -----------------------
 if not df.empty:
     df = preprocess(df)
@@ -126,44 +126,68 @@ if menu == "Dashboard" and not df.empty:
     col1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
     col2.metric("IPO Entries", len(ipo_month))
 
-    # Expense Chart
+    # Expense Filter
     filtered = expense_df[expense_df["month"] == selected_month]
 
-    st.subheader(f"📊 Category Breakdown - {selected_month}")
+    # -----------------------
+    # 🔥 DONUT CHART
+    # -----------------------
+    st.subheader(f"📊 Spending Distribution - {selected_month}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
     cat = cat.sort_values(by="amount", ascending=False)
 
     if not cat.empty:
-        cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
+        fig = px.pie(
+            cat,
+            names="category",
+            values="amount",
+            hole=0.5
+        )
 
-        fig = px.bar(cat, x="category", y="amount", text="label")
-        fig.update_traces(textposition="outside")
-        fig.update_layout(height=400, yaxis=dict(visible=False))
+        fig.update_traces(
+            textinfo="percent+label",
+            hovertemplate="<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}"
+        )
+
+        fig.update_layout(height=450)
 
         st.plotly_chart(fig, use_container_width=True)
+
+        # Highlight Top Category
+        top_cat = cat.iloc[0]
+        st.markdown(
+            f"🔥 Highest Spend: **{top_cat['category']}** (₹{top_cat['amount']:,.0f})"
+        )
+
     else:
         st.info("No expense data")
 
+    # -----------------------
     # Recurring
+    # -----------------------
     st.subheader("🔁 Recurring Breakdown")
 
     rec = filtered[filtered["recurring"].str.lower() == "recurring"]
 
     if not rec.empty:
         rec_cat = rec.groupby("category")["amount"].sum().reset_index()
-        rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
-        fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
-        fig2.update_traces(textposition="outside")
-        fig2.update_layout(height=400, yaxis=dict(visible=False))
+        fig2 = px.pie(
+            rec_cat,
+            names="category",
+            values="amount",
+            hole=0.5
+        )
+
+        fig2.update_traces(textinfo="percent+label")
 
         st.plotly_chart(fig2, use_container_width=True)
     else:
         st.info("No recurring expenses")
 
 # =======================
-# COMPARE (NEW UX 🔥)
+# COMPARE
 # =======================
 elif menu == "Compare" and not df.empty:
 
@@ -210,7 +234,6 @@ elif menu == "Compare" and not df.empty:
     cat2 = df2[df2["category"] == selected_category]["amount"].sum()
 
     c1, c2 = st.columns(2)
-
     c1.metric(f"{m1}-{y1}", f"₹{cat1:,.0f}")
     c2.metric(f"{m2}-{y2}", f"₹{cat2:,.0f}")
 
