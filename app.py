@@ -38,9 +38,8 @@ h1, h2, h3 {
 st.title("💰 Smart Budget Dashboard")
 
 # -----------------------
-# EXISTING LOGIC (UNCHANGED)
+# HELPERS
 # -----------------------
-
 def extract_sheet_id(input_text):
     if "docs.google.com" in input_text:
         return input_text.split("/d/")[1].split("/")[0]
@@ -67,6 +66,9 @@ def preprocess(df):
     df["month"] = df["date"].dt.strftime("%B")
     return df.sort_values(["year", "month_num"])
 
+# -----------------------
+# DATA SOURCE
+# -----------------------
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
 
@@ -103,7 +105,7 @@ if menu == "Dashboard" and not df.empty:
     yearly_total = expense_df["amount"].sum()
     monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
-    # PREMIUM CARDS (NO LOGIC CHANGE)
+    # Premium Cards
     col1, col2 = st.columns(2)
 
     with col1:
@@ -122,7 +124,7 @@ if menu == "Dashboard" and not df.empty:
         </div>
         """, unsafe_allow_html=True)
 
-    # IPO (UNCHANGED LOGIC)
+    # IPO
     st.markdown("### 💼 IPO Summary")
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
@@ -130,7 +132,7 @@ if menu == "Dashboard" and not df.empty:
     c1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
     c2.metric("IPO Entries", len(ipo_month))
 
-    # CATEGORY
+    # Category
     filtered = expense_df[expense_df["month"] == selected_month]
 
     st.subheader(f"📊 Category Breakdown - {selected_month}")
@@ -145,13 +147,12 @@ if menu == "Dashboard" and not df.empty:
         )
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-
         fig.update_traces(textposition="outside", textfont=dict(size=16))
         fig.update_layout(yaxis=dict(visible=False))
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # OTHERS DONUT (UNCHANGED)
+    # Others
     others_data = filtered[filtered["category"].str.lower() == "others"]
 
     if not others_data.empty:
@@ -159,6 +160,7 @@ if menu == "Dashboard" and not df.empty:
 
         others_group = others_data.groupby("description")["amount"].sum().reset_index()
         total_others = others_group["amount"].sum()
+
         others_group["percent"] = (others_group["amount"] / total_others) * 100
 
         major = others_group[others_group["percent"] >= 1]
@@ -174,3 +176,38 @@ if menu == "Dashboard" and not df.empty:
 
         fig2 = px.pie(major, names="description", values="amount", hole=0.5)
         st.plotly_chart(fig2, use_container_width=True)
+
+# =======================
+# COMPARE (RESTORED ✅)
+# =======================
+elif menu == "Compare" and not df.empty:
+
+    st.subheader("⚖️ Compare Months")
+
+    col1, col2 = st.columns(2)
+
+    y1 = col1.selectbox("Year 1", sorted(df["year"].unique()))
+    y2 = col2.selectbox("Year 2", sorted(df["year"].unique()))
+
+    m1 = col1.selectbox("Month 1", df[df["year"] == y1]["month"].unique())
+    m2 = col2.selectbox("Month 2", df[df["year"] == y2]["month"].unique())
+
+    df1 = df[(df["year"] == y1) & (df["month"] == m1)]
+    df2 = df[(df["year"] == y2) & (df["month"] == m2)]
+
+    df1 = df1[df1["category"].str.lower() != "ipo"]
+    df2 = df2[df2["category"].str.lower() != "ipo"]
+
+    total1 = df1["amount"].sum()
+    total2 = df2["amount"].sum()
+
+    diff = total1 - total2
+
+    st.markdown("### 🔥 Total Difference")
+
+    if diff > 0:
+        st.error(f"₹{abs(diff):,.0f} higher")
+    elif diff < 0:
+        st.success(f"₹{abs(diff):,.0f} lower")
+    else:
+        st.info("No difference")
