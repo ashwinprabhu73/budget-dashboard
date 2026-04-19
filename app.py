@@ -5,26 +5,7 @@ import plotly.express as px
 from datetime import datetime
 
 # -----------------------
-# Extract Sheet ID
-# -----------------------
-def extract_sheet_id(input_text):
-    if "docs.google.com" in input_text:
-        return input_text.split("/d/")[1].split("/")[0]
-    return input_text
-
-# -----------------------
-# Load Google Sheet
-# -----------------------
-def load_google_sheet(sheet_id):
-    try:
-        url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
-        df = pd.read_csv(url)
-        return df
-    except:
-        return pd.DataFrame()
-
-# -----------------------
-# Local DB (fallback)
+# DB Setup
 # -----------------------
 conn = sqlite3.connect("expenses.db", check_same_thread=False)
 c = conn.cursor()
@@ -35,136 +16,183 @@ CREATE TABLE IF NOT EXISTS expenses (
     date TEXT,
     description TEXT,
     category TEXT,
-    amount REAL
+    amount REAL,
+    recurring TEXT
 )
 ''')
 conn.commit()
 
+# -----------------------
+# Functions
+# -----------------------
 def insert_data(row):
     c.execute("""
-        INSERT INTO expenses (date, description, category, amount)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO expenses (date, description, category, amount, recurring)
+        VALUES (?, ?, ?, ?, ?)
     """, row)
     conn.commit()
 
-def load_local_data():
+def load_data():
     return pd.read_sql("SELECT * FROM expenses", conn)
 
 # -----------------------
-# UI
+# Read Multi-Sheet Excel
+# -----------------------
+def load_excel_all_sheets(file):
+    all_sheets = pd.read_excel(file, sheet_name=None)
+
+    df_list = []
+
+    for sheet_name, sheet_data in all_sheets.items():
+        sheet_data["Sheet"] = sheet_name
+        df_list.append(sheet_data)
+
+    df = pd.concat(df_list, ignore_index=True)
+
+    df = df.rename(columns={
+        "Date": "date",
+        "Expense": "description",
+        "Expns Category": "category",
+        "Total cost": "amount",
+        "Recurring Expense": "recurring"
+    })
+
+    df = df.fillna("")
+
+    return df
+
+# -----------------------
+# UI Setup
 # -----------------------
 st.set_page_config(page_title="Budget Dashboard", layout="wide")
 st.title("💰 Smart Budget Dashboard")
 
-menu = st.sidebar.radio("Menu", ["Dashboard", "Compare", "Add Entry"])
+menu = st.sidebar.radio("Menu", ["Dashboard", "Compare", "Upload File", "Add Entry"])
+
+# -----------------------
+# Upload Excel
+# -----------------------
+if menu == "Upload File":
+    file = st.file_uploader("Upload Excel (Multi-tab supported)", type=["xlsx"])
+
+    if file:
+        df = load_excel_all_sheets(file)
+
+        for _, row in df.iterrows():
+            insert_data([
+                str(row.get("date", "")),
+                str(row.get("description", "")),
+                str(row.get("category", "")),
+                float(row.get("amount", 0) or 0),
+                str(row.get("recurring", ""))
+            ])
+
+        st.success("✅ Multi-sheet Excel uploaded successfully!")
 
 # -----------------------
 # Add Entry
 # -----------------------
-if menu == "Add Entry":
+elif menu == "Add Entry":
     st.subheader("➕ Add Expense")
 
     date = st.date_input("Date", datetime.today())
     category = st.text_input("Category")
     amount = st.number_input("Amount")
+    recurring = st.selectbox("Recurring", ["", "Recurring"])
 
     if st.button("Save"):
-        insert_data([str(date), "", category, amount])
-        st.success("Saved locally!")
+        insert_data([
+            str(date),
+            "",
+            category,
+            amount,
+            recurring
+        ])
+        st.success("Saved successfully!")
 
 # -----------------------
 # Dashboard
 # -----------------------
 elif menu == "Dashboard":
+    df = load_data()
 
-    st.subheader("🔗 Connect Google Sheet")
+    if df.empty:
+        st.warning("No data available")
+    else:
+        df["date"] = pd.to_datetime(df["date"], errors='coerce')
+        df["year"] = df["date"].dt.year
+        df["month"] = df["date"].dt.strftime("%B")
 
-    sheet_input = st.text_input("Paste Google Sheet URL or ID")
+        # Year selection
+        years = sorted(df["year"].dropna().unique())
+        selected_year = st.selectbox("📅 Select Year", years)
 
-    if sheet_input:
-        sheet_id = extract_sheet_id(sheet_input)
-        st.success(f"Connected to Sheet ID: {sheet_id}")
+        year_df = df[df["year"] == selected_year]
 
-        if st.button("🔄 Refresh Data"):
-            st.rerun()
+        # Total + Avg
+        yearly_total = year_df["amount"].sum()
+        months_count = year_df["month"].nunique()
+        avg_monthly = yearly_total / months_count if months_count > 0 else 0
 
-        # Load data
-        g_df = load_google_sheet(sheet_id)
+        st.markdown("### 💰 Total Spend")
+        st.success(f"₹{yearly_total:,.0f}")
+        st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
 
-        g_df = g_df.rename(columns={
-            "Date": "date",
-            "Expense": "description",
-            "Expns Category": "category",
-            "Total cost": "amount"
-        })
+        # Month selection
+        months = year_df["month"].unique()
+        selected_month = st.selectbox("📊 Select Month", months)
 
-        g_df = g_df.fillna("")
+        filtered = year_df[year_df["month"] == selected_month]
 
-        local_df = load_local_data()
+        # Category Chart
+        st.subheader(f"📊 Category Breakdown - {selected_month}")
 
-        df = pd.concat([g_df, local_df], ignore_index=True)
+        cat = filtered.groupby("category")["amount"].sum().reset_index()
+        cat = cat.sort_values(by="amount", ascending=False)
+        cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
-        if df.empty:
-            st.warning("No data available")
+        fig = px.bar(cat, x="category", y="amount", text="label")
+
+        fig.update_traces(textposition="outside")
+        fig.update_layout(
+            height=400,
+            yaxis=dict(visible=False),
+            xaxis_title="",
+            yaxis_title=""
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Recurring
+        st.subheader("🔁 Recurring Breakdown")
+
+        rec = filtered[filtered["recurring"].str.lower() == "recurring"]
+
+        if not rec.empty:
+            rec_cat = rec.groupby("category")["amount"].sum().reset_index()
+            rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+            fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
+
+            fig2.update_traces(textposition="outside")
+            fig2.update_layout(
+                height=400,
+                yaxis=dict(visible=False)
+            )
+
+            st.plotly_chart(fig2, use_container_width=True)
         else:
-            df["date"] = pd.to_datetime(df["date"], errors='coerce')
-            df["year"] = df["date"].dt.year
-            df["month"] = df["date"].dt.strftime("%B")
-
-            # Year selection
-            years = sorted(df["year"].dropna().unique())
-            selected_year = st.selectbox("📅 Select Year", years)
-
-            year_df = df[df["year"] == selected_year]
-
-            # Total + Avg
-            yearly_total = year_df["amount"].sum()
-            months_count = year_df["month"].nunique()
-            avg_monthly = yearly_total / months_count if months_count > 0 else 0
-
-            st.markdown("### 💰 Total Spend")
-            st.success(f"₹{yearly_total:,.0f}")
-            st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
-
-            # Month
-            months = year_df["month"].unique()
-            selected_month = st.selectbox("📊 Select Month", months)
-
-            filtered = year_df[year_df["month"] == selected_month]
-
-            # Chart
-            st.subheader(f"📊 Category Breakdown - {selected_month}")
-
-            cat = filtered.groupby("category")["amount"].sum().reset_index()
-            cat = cat.sort_values(by="amount", ascending=False)
-            cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
-
-            fig = px.bar(cat, x="category", y="amount", text="label")
-            fig.update_traces(textposition="outside")
-            fig.update_layout(height=400, yaxis=dict(visible=False))
-
-            st.plotly_chart(fig, use_container_width=True)
+            st.info("No recurring expenses")
 
 # -----------------------
 # Compare
 # -----------------------
 elif menu == "Compare":
-    st.subheader("⚖️ Compare Months")
+    df = load_data()
 
-    sheet_input = st.text_input("Paste Google Sheet URL or ID", key="compare_sheet")
-
-    if sheet_input:
-        sheet_id = extract_sheet_id(sheet_input)
-
-        df = load_google_sheet(sheet_id)
-
-        df = df.rename(columns={
-            "Date": "date",
-            "Expense": "description",
-            "Expns Category": "category",
-            "Total cost": "amount"
-        })
-
+    if df.empty:
+        st.warning("No data")
+    else:
         df["date"] = pd.to_datetime(df["date"], errors='coerce')
         df["year"] = df["date"].dt.year
         df["month"] = df["date"].dt.strftime("%B")
@@ -184,8 +212,13 @@ elif menu == "Compare":
         cat1 = df1.groupby("category")["amount"].sum()
         cat2 = df2.groupby("category")["amount"].sum()
 
-        compare = pd.DataFrame({m1: cat1, m2: cat2}).fillna(0).reset_index()
+        compare = pd.DataFrame({
+            m1: cat1,
+            m2: cat2
+        }).fillna(0).reset_index()
 
         fig = px.bar(compare, x="category", y=[m1, m2], barmode="group")
+
+        fig.update_layout(height=400)
 
         st.plotly_chart(fig, use_container_width=True)
