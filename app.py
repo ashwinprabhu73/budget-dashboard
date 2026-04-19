@@ -61,10 +61,10 @@ def load_data():
 st.set_page_config(page_title="Budget Dashboard", layout="wide")
 st.title("💰 Smart Budget Dashboard")
 
-menu = st.sidebar.radio("Menu", ["Dashboard", "Upload File", "Add Entry"])
+menu = st.sidebar.radio("Menu", ["Dashboard", "Compare", "Upload File", "Add Entry"])
 
 # -----------------------
-# Upload Section
+# Upload
 # -----------------------
 if menu == "Upload File":
     file = st.file_uploader("Upload your budget file", type=["xlsx", "csv"])
@@ -104,10 +104,10 @@ if menu == "Upload File":
         st.success("✅ Data uploaded successfully!")
 
 # -----------------------
-# Add Entry Section
+# Add Entry
 # -----------------------
 elif menu == "Add Entry":
-    st.subheader("➕ Add Expense / Income")
+    st.subheader("➕ Add Expense")
 
     date = st.date_input("Date", datetime.today())
     description = st.text_input("Description")
@@ -120,7 +120,7 @@ elif menu == "Add Entry":
     notes = st.text_input("Notes")
     recurring = st.selectbox("Recurring", ["", "Recurring"])
 
-    if st.button("Save Entry"):
+    if st.button("Save"):
         insert_data([
             str(date),
             description,
@@ -133,10 +133,10 @@ elif menu == "Add Entry":
             notes,
             recurring
         ])
-        st.success("✅ Entry added successfully!")
+        st.success("✅ Saved successfully!")
 
 # -----------------------
-# Dashboard Section
+# Dashboard (Single Month)
 # -----------------------
 elif menu == "Dashboard":
     df = load_data()
@@ -145,112 +145,95 @@ elif menu == "Dashboard":
         st.warning("No data available.")
     else:
         df["date"] = pd.to_datetime(df["date"], errors='coerce')
-
-        # Extract time fields
         df["year"] = df["date"].dt.year
-        df["month_num"] = df["date"].dt.month
         df["month"] = df["date"].dt.strftime("%B")
 
-        # -----------------------
-        # Filters
-        # -----------------------
-        st.subheader("📅 Filters")
+        st.subheader("📅 Select Month")
 
         years = sorted(df["year"].dropna().unique())
-        selected_year = st.selectbox("Select Year", years)
+        selected_year = st.selectbox("Year", years)
 
         months = df[df["year"] == selected_year]["month"].unique()
-        selected_month = st.selectbox("Select Month", months)
-        compare_month = st.selectbox("Compare With Month", months)
+        selected_month = st.selectbox("Month", months)
 
-        # Filter data
         filtered_df = df[
             (df["year"] == selected_year) &
             (df["month"] == selected_month)
         ]
 
-        compare_df = df[
-            (df["year"] == selected_year) &
-            (df["month"] == compare_month)
-        ]
-
-        # -----------------------
         # KPIs
-        # -----------------------
-        total_spend = filtered_df["amount"].sum()
-        recurring_spend = filtered_df[
+        total = filtered_df["amount"].sum()
+        recurring = filtered_df[
             filtered_df["recurring"].str.lower() == "recurring"
         ]["amount"].sum()
 
         col1, col2 = st.columns(2)
-        col1.metric("Total Spend", f"₹{total_spend:,.0f}")
-        col2.metric("Recurring Spend", f"₹{recurring_spend:,.0f}")
+        col1.metric("Total Spend", f"₹{total:,.0f}")
+        col2.metric("Recurring", f"₹{recurring:,.0f}")
 
-        # -----------------------
-        # Category Breakdown
-        # -----------------------
-        st.subheader(f"📊 Category Breakdown - {selected_month}")
+        # Category chart
+        st.subheader("📊 Category Breakdown")
 
-        cat1 = filtered_df.groupby("category")["amount"].sum().sort_values(ascending=False)
+        cat = filtered_df.groupby("category")["amount"].sum().sort_values(ascending=False)
+        cat.index = [f"{get_icon(c)} {c}" for c in cat.index]
 
-        cat_display = cat1.copy()
-        cat_display.index = [f"{get_icon(cat)} {cat}" for cat in cat_display.index]
+        st.bar_chart(cat)
 
-        st.bar_chart(cat_display)
+        # Recurring
+        st.subheader("🔁 Recurring Breakdown")
+        rec = filtered_df[filtered_df["recurring"].str.lower() == "recurring"]
 
-        # -----------------------
-        # Comparison Chart
-        # -----------------------
-        st.subheader(f"⚖️ Comparison: {selected_month} vs {compare_month}")
+        if not rec.empty:
+            st.bar_chart(rec.groupby("category")["amount"].sum())
+        else:
+            st.info("No recurring expenses")
 
-        cat2 = compare_df.groupby("category")["amount"].sum()
+# -----------------------
+# Compare Section (NEW)
+# -----------------------
+elif menu == "Compare":
+    df = load_data()
 
-        compare_table = pd.DataFrame({
-            selected_month: cat1,
-            compare_month: cat2
+    if df.empty:
+        st.warning("No data available.")
+    else:
+        df["date"] = pd.to_datetime(df["date"], errors='coerce')
+        df["year"] = df["date"].dt.year
+        df["month"] = df["date"].dt.strftime("%B")
+
+        st.subheader("⚖️ Compare Months")
+
+        years = sorted(df["year"].dropna().unique())
+        selected_year = st.selectbox("Year", years)
+
+        months = df[df["year"] == selected_year]["month"].unique()
+
+        col1, col2 = st.columns(2)
+        m1 = col1.selectbox("Month 1", months)
+        m2 = col2.selectbox("Month 2", months)
+
+        df1 = df[(df["year"] == selected_year) & (df["month"] == m1)]
+        df2 = df[(df["year"] == selected_year) & (df["month"] == m2)]
+
+        cat1 = df1.groupby("category")["amount"].sum()
+        cat2 = df2.groupby("category")["amount"].sum()
+
+        compare = pd.DataFrame({
+            m1: cat1,
+            m2: cat2
         }).fillna(0)
 
-        st.bar_chart(compare_table)
+        st.bar_chart(compare)
 
-        # -----------------------
-        # Yearly Trend
-        # -----------------------
-        st.subheader("📈 Yearly Monthly Trend")
-
-        yearly = df[df["year"] == selected_year].groupby("month_num")["amount"].sum()
-        yearly.index = [pd.to_datetime(str(m), format='%m').strftime('%B') for m in yearly.index]
-
-        st.line_chart(yearly)
-
-        # -----------------------
-        # Recurring Analysis
-        # -----------------------
-        st.subheader("🔁 Recurring Analysis")
-
-        recurring_df = df[df["recurring"].str.lower() == "recurring"]
-
-        if not recurring_df.empty:
-            rec = recurring_df.groupby(["year", "month_num"])["amount"].sum().reset_index()
-            rec["month"] = rec["month_num"].apply(lambda x: pd.to_datetime(str(x), format='%m').strftime('%B'))
-            st.line_chart(rec.set_index("month")["amount"])
-
-            rec_cat = recurring_df.groupby("category")["amount"].sum()
-            st.bar_chart(rec_cat)
-        else:
-            st.info("No recurring expenses found.")
-
-        # -----------------------
-        # Insights
-        # -----------------------
+        # Insight
         st.subheader("🧠 Insights")
 
-        if not cat1.empty:
-            st.write(f"👉 Top category in {selected_month}: **{cat1.idxmax()}**")
+        total1 = df1["amount"].sum()
+        total2 = df2["amount"].sum()
 
-        if compare_month != selected_month:
-            diff = total_spend - compare_df["amount"].sum()
+        diff = total1 - total2
 
-            if diff > 0:
-                st.warning(f"⚠️ You spent ₹{diff:,.0f} more than {compare_month}")
-            else:
-                st.success(f"✅ You saved ₹{abs(diff):,.0f} compared to {compare_month}")
+        if diff > 0:
+            st.warning(f"⚠️ {m1} is ₹{diff:,.0f} higher than {m2}")
+        else:
+            st.success(f"✅ {m1} is ₹{abs(diff):,.0f} lower than {m2}")
