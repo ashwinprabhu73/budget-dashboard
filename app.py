@@ -54,7 +54,6 @@ st.set_page_config(layout="wide")
 st.title("💰 Smart Budget Dashboard")
 
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
-
 source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
 
 df = pd.DataFrame()
@@ -100,11 +99,8 @@ if menu == "Dashboard" and not df.empty:
     col1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
     col2.metric("IPO Entries", len(ipo_month))
 
-    # -----------------------
-    # FILTER
-    # -----------------------
+    # Filter
     filtered = expense_df[expense_df["month"] == selected_month]
-
     monthly_total = filtered["amount"].sum()
 
     st.subheader(
@@ -115,7 +111,6 @@ if menu == "Dashboard" and not df.empty:
     cat = cat.sort_values(by="amount", ascending=False)
 
     if not cat.empty:
-
         total = cat["amount"].sum()
 
         cat["percent"] = (cat["amount"] / total) * 100
@@ -129,9 +124,7 @@ if menu == "Dashboard" and not df.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # -----------------------
-        # OTHERS BREAKDOWN
-        # -----------------------
+        # Others Breakdown
         others_data = filtered[filtered["category"].str.lower() == "others"]
 
         if not others_data.empty:
@@ -140,7 +133,6 @@ if menu == "Dashboard" and not df.empty:
             others_group = others_data.groupby("description")["amount"].sum().reset_index()
 
             total_others = others_group["amount"].sum()
-
             others_group["percent"] = (others_group["amount"] / total_others) * 100
 
             major = others_group[others_group["percent"] >= 1]
@@ -169,12 +161,7 @@ if menu == "Dashboard" and not df.empty:
                 hovertemplate="<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}"
             )
 
-            fig2.update_layout(height=400)
-
             st.plotly_chart(fig2, use_container_width=True)
-
-    else:
-        st.info("No expense data")
 
 # =======================
 # COMPARE
@@ -212,7 +199,7 @@ elif menu == "Compare" and not df.empty:
         st.info("No difference")
 
     # -----------------------
-    # TOP 10 CATEGORY COMPARE
+    # TOP 10 CATEGORY COMPARE WITH %
     # -----------------------
     st.markdown("### 📊 Top 10 Category Comparison")
 
@@ -226,21 +213,33 @@ elif menu == "Compare" and not df.empty:
 
     compare["total"] = compare.sum(axis=1)
     compare = compare.sort_values(by="total", ascending=False).head(10)
-
     compare = compare.drop(columns=["total"]).reset_index()
 
-    if not compare.empty:
-        fig = px.bar(
-            compare,
-            x="category",
-            y=compare.columns[1:],
-            barmode="group",
-            text_auto=True
-        )
+    compare[f"{m1}-{y1}_pct"] = (compare[f"{m1}-{y1}"] / total1) * 100
+    compare[f"{m2}-{y2}_pct"] = (compare[f"{m2}-{y2}"] / total2) * 100
 
-        fig.update_layout(height=450)
+    melted = pd.DataFrame()
 
-        st.plotly_chart(fig, use_container_width=True)
+    for month in [f"{m1}-{y1}", f"{m2}-{y2}"]:
+        temp = compare[["category", month, f"{month}_pct"]].copy()
+        temp.columns = ["category", "amount", "percent"]
+        temp["Month"] = month
+        melted = pd.concat([melted, temp])
 
-    else:
-        st.info("No data to compare")
+    melted["label"] = melted.apply(
+        lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
+    )
+
+    fig = px.bar(
+        melted,
+        x="category",
+        y="amount",
+        color="Month",
+        barmode="group",
+        text="label"
+    )
+
+    fig.update_traces(textposition="outside")
+    fig.update_layout(height=500)
+
+    st.plotly_chart(fig, use_container_width=True)
