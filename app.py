@@ -11,7 +11,7 @@ def extract_sheet_id(input_text):
     return input_text
 
 # -----------------------
-# Load Google Sheet
+# Load Google Sheet (ALL TABS)
 # -----------------------
 def load_google_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -24,7 +24,7 @@ def load_google_sheet(sheet_id):
     return pd.concat(df_list, ignore_index=True)
 
 # -----------------------
-# Load Excel
+# Load Excel Upload
 # -----------------------
 def load_excel(file):
     all_sheets = pd.read_excel(file, sheet_name=None)
@@ -85,7 +85,7 @@ elif source == "Upload Excel":
         df = load_excel(file)
 
 # -----------------------
-# PROCESS DATA
+# Process
 # -----------------------
 if not df.empty:
     df = preprocess(df)
@@ -100,9 +100,11 @@ if menu == "Dashboard" and not df.empty:
 
     year_df = df[df["year"] == selected_year]
 
+    # Split IPO
     ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
+    # Total + Avg
     yearly_total = expense_df["amount"].sum()
     month_count = expense_df["month_num"].nunique()
     avg_monthly = yearly_total / month_count if month_count else 0
@@ -111,11 +113,13 @@ if menu == "Dashboard" and not df.empty:
     st.success(f"₹{yearly_total:,.0f}")
     st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
 
+    # Month
     months = year_df["month"].unique()
     selected_month = st.selectbox("📊 Select Month", months)
 
-    # IPO
+    # IPO Summary
     st.markdown("### 💼 IPO Summary")
+
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
     col1, col2 = st.columns(2)
@@ -128,6 +132,7 @@ if menu == "Dashboard" and not df.empty:
     st.subheader(f"📊 Category Breakdown - {selected_month}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
+    cat = cat.sort_values(by="amount", ascending=False)
 
     if not cat.empty:
         cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
@@ -137,9 +142,28 @@ if menu == "Dashboard" and not df.empty:
         fig.update_layout(height=400, yaxis=dict(visible=False))
 
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("No expense data")
+
+    # Recurring
+    st.subheader("🔁 Recurring Breakdown")
+
+    rec = filtered[filtered["recurring"].str.lower() == "recurring"]
+
+    if not rec.empty:
+        rec_cat = rec.groupby("category")["amount"].sum().reset_index()
+        rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+        fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
+        fig2.update_traces(textposition="outside")
+        fig2.update_layout(height=400, yaxis=dict(visible=False))
+
+        st.plotly_chart(fig2, use_container_width=True)
+    else:
+        st.info("No recurring expenses")
 
 # =======================
-# COMPARE TAB (NEW 🔥)
+# COMPARE (NEW UX 🔥)
 # =======================
 elif menu == "Compare" and not df.empty:
 
@@ -157,34 +181,44 @@ elif menu == "Compare" and not df.empty:
     df1 = df[(df["year"] == y1) & (df["month"] == m1)]
     df2 = df[(df["year"] == y2) & (df["month"] == m2)]
 
-    # Remove IPO from comparison
+    # Remove IPO
     df1 = df1[df1["category"].str.lower() != "ipo"]
     df2 = df2[df2["category"].str.lower() != "ipo"]
 
-    cat1 = df1.groupby("category")["amount"].sum()
-    cat2 = df2.groupby("category")["amount"].sum()
+    total1 = df1["amount"].sum()
+    total2 = df2["amount"].sum()
 
-    compare = pd.DataFrame({
-        f"{m1}-{y1}": cat1,
-        f"{m2}-{y2}": cat2
-    }).fillna(0).reset_index()
+    diff = total1 - total2
 
-    if not compare.empty:
-        fig = px.bar(compare, x="category", y=compare.columns[1:], barmode="group")
+    # 🔥 Total Difference
+    st.markdown("### 🔥 Total Difference")
 
-        fig.update_layout(height=400)
+    if diff > 0:
+        st.error(f"₹{abs(diff):,.0f} higher than {m2}-{y2}")
+    elif diff < 0:
+        st.success(f"₹{abs(diff):,.0f} lower than {m2}-{y2}")
+    else:
+        st.info("No difference")
 
-        st.plotly_chart(fig, use_container_width=True)
+    # 📊 Category Drill-down
+    st.markdown("### 📊 Category Comparison")
 
-        # Insight
-        total1 = df1["amount"].sum()
-        total2 = df2["amount"].sum()
+    categories = sorted(set(df1["category"]).union(set(df2["category"])))
+    selected_category = st.selectbox("Select Category", categories)
 
-        diff = total1 - total2
+    cat1 = df1[df1["category"] == selected_category]["amount"].sum()
+    cat2 = df2[df2["category"] == selected_category]["amount"].sum()
 
-        st.subheader("🧠 Insights")
+    c1, c2 = st.columns(2)
 
-        if diff > 0:
-            st.warning(f"{m1}-{y1} is ₹{diff:,.0f} higher")
-        else:
-            st.success(f"{m1}-{y1} is ₹{abs(diff):,.0f} lower")
+    c1.metric(f"{m1}-{y1}", f"₹{cat1:,.0f}")
+    c2.metric(f"{m2}-{y2}", f"₹{cat2:,.0f}")
+
+    cat_diff = cat1 - cat2
+
+    if cat_diff > 0:
+        st.warning(f"Spending increased by ₹{cat_diff:,.0f}")
+    elif cat_diff < 0:
+        st.success(f"Spending reduced by ₹{abs(cat_diff):,.0f}")
+    else:
+        st.info("No change")
