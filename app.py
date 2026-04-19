@@ -101,7 +101,7 @@ if menu == "Dashboard" and not df.empty:
     col2.metric("IPO Entries", len(ipo_month))
 
     # -----------------------
-    # FILTER DATA
+    # FILTER
     # -----------------------
     filtered = expense_df[expense_df["month"] == selected_month]
 
@@ -112,16 +112,17 @@ if menu == "Dashboard" and not df.empty:
 
     if not cat.empty:
 
-        # -----------------------
-        # TOP 10
-        # -----------------------
-        top10 = cat.head(10)
-        others = cat.iloc[10:]
+        total = cat["amount"].sum()
+
+        # ADD % COLUMN
+        cat["percent"] = (cat["amount"] / total) * 100
+
+        cat["label"] = cat.apply(
+            lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
+        )
 
         # BAR CHART
-        top10["label"] = top10["amount"].apply(lambda x: f"₹{x:,.0f}")
-
-        fig = px.bar(top10, x="category", y="amount", text="label")
+        fig = px.bar(cat, x="category", y="amount", text="label")
 
         fig.update_traces(textposition="outside")
         fig.update_layout(height=400, yaxis=dict(visible=False))
@@ -129,14 +130,18 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
         # -----------------------
-        # OTHERS DONUT
+        # OTHERS BREAKDOWN (ONLY "Others" CATEGORY)
         # -----------------------
-        if not others.empty:
+        others_data = filtered[filtered["category"].str.lower() == "others"]
+
+        if not others_data.empty:
             st.markdown("### 🔍 Others Breakdown")
 
+            others_group = others_data.groupby("description")["amount"].sum().reset_index()
+
             fig2 = px.pie(
-                others,
-                names="category",
+                others_group,
+                names="description",
                 values="amount",
                 hole=0.5
             )
@@ -145,8 +150,6 @@ if menu == "Dashboard" and not df.empty:
                 textinfo="percent+label",
                 hovertemplate="<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}"
             )
-
-            fig2.update_layout(height=400)
 
             st.plotly_chart(fig2, use_container_width=True)
 
