@@ -92,7 +92,7 @@ if menu == "Dashboard" and not df.empty:
 
     selected_month = st.selectbox("📊 Select Month", year_df["month"].unique())
 
-    # IPO
+    # IPO Summary
     st.markdown("### 💼 IPO Summary")
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
@@ -101,7 +101,7 @@ if menu == "Dashboard" and not df.empty:
     col2.metric("IPO Entries", len(ipo_month))
 
     # -----------------------
-    # EXPENSE FILTER
+    # FILTER DATA
     # -----------------------
     filtered = expense_df[expense_df["month"] == selected_month]
 
@@ -113,27 +113,15 @@ if menu == "Dashboard" and not df.empty:
     if not cat.empty:
 
         # -----------------------
-        # Create "Others"
+        # TOP 10
         # -----------------------
-        threshold = cat["amount"].sum() * 0.1  # <10% goes to others
+        top10 = cat.head(10)
+        others = cat.iloc[10:]
 
-        main_cat = cat[cat["amount"] >= threshold]
-        others_cat = cat[cat["amount"] < threshold]
-
-        others_total = others_cat["amount"].sum()
-
-        if others_total > 0:
-            main_cat = pd.concat([
-                main_cat,
-                pd.DataFrame([{"category": "Others", "amount": others_total}])
-            ])
-
-        main_cat["label"] = main_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
-
-        # -----------------------
         # BAR CHART
-        # -----------------------
-        fig = px.bar(main_cat, x="category", y="amount", text="label")
+        top10["label"] = top10["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+        fig = px.bar(top10, x="category", y="amount", text="label")
 
         fig.update_traces(textposition="outside")
         fig.update_layout(height=400, yaxis=dict(visible=False))
@@ -141,14 +129,26 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
         # -----------------------
-        # OTHERS BREAKDOWN
+        # OTHERS DONUT
         # -----------------------
-        if not others_cat.empty:
+        if not others.empty:
             st.markdown("### 🔍 Others Breakdown")
 
-            others_cat = others_cat.sort_values(by="amount", ascending=False)
+            fig2 = px.pie(
+                others,
+                names="category",
+                values="amount",
+                hole=0.5
+            )
 
-            st.dataframe(others_cat, use_container_width=True)
+            fig2.update_traces(
+                textinfo="percent+label",
+                hovertemplate="<b>%{label}</b><br>₹%{value:,.0f}<br>%{percent}"
+            )
+
+            fig2.update_layout(height=400)
+
+            st.plotly_chart(fig2, use_container_width=True)
 
     else:
         st.info("No expense data")
