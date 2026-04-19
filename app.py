@@ -42,7 +42,7 @@ def load_data():
     return pd.read_sql("SELECT * FROM expenses", conn)
 
 # -----------------------
-# UI
+# UI Setup
 # -----------------------
 st.set_page_config(page_title="Budget Dashboard", layout="wide")
 st.title("💰 Smart Budget Dashboard")
@@ -50,7 +50,7 @@ st.title("💰 Smart Budget Dashboard")
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare", "Upload File", "Add Entry"])
 
 # -----------------------
-# Upload (Multi-sheet support)
+# Upload (Multi-sheet)
 # -----------------------
 if menu == "Upload File":
     file = st.file_uploader("Upload Excel", type=["xlsx"])
@@ -59,7 +59,6 @@ if menu == "Upload File":
         all_sheets = pd.read_excel(file, sheet_name=None)
 
         df_list = []
-
         for sheet_name, sheet_data in all_sheets.items():
             sheet_data["Sheet"] = sheet_name
             df_list.append(sheet_data)
@@ -119,21 +118,48 @@ elif menu == "Dashboard":
         df["year"] = df["date"].dt.year
         df["month"] = df["date"].dt.strftime("%B")
 
+        # -----------------------
+        # Filters
+        # -----------------------
+        col1, col2 = st.columns(2)
+
         years = sorted(df["year"].dropna().unique())
-        selected_year = st.selectbox("Year", years)
+        selected_year = col1.selectbox("Year", years)
 
         months = df[df["year"] == selected_year]["month"].unique()
-        selected_month = st.selectbox("Month", months)
+        selected_month = col2.selectbox("Month", months)
 
+        # -----------------------
+        # Top Cards (NEW)
+        # -----------------------
+        year_df = df[df["year"] == selected_year]
+        yearly_total = year_df["amount"].sum()
+
+        c1, c2 = st.columns(2)
+
+        with c1:
+            st.markdown("### 📅 Year")
+            st.info(f"{selected_year}")
+
+        with c2:
+            st.markdown("### 💰 Total Spend (Year)")
+            st.success(f"₹{yearly_total:,.0f}")
+
+        # -----------------------
+        # Month Data
+        # -----------------------
         filtered = df[
             (df["year"] == selected_year) &
             (df["month"] == selected_month)
         ]
 
-        total = filtered["amount"].sum()
-        st.metric("Total Spend", f"₹{total:,.0f}")
+        # -----------------------
+        # Category Chart
+        # -----------------------
+        st.subheader(f"📊 Category Breakdown - {selected_month}")
 
         cat = filtered.groupby("category")["amount"].sum().reset_index()
+        cat = cat.sort_values(by="amount", ascending=False)
         cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
         fig = px.bar(cat, x="category", y="amount", text="label")
@@ -141,10 +167,35 @@ elif menu == "Dashboard":
         fig.update_traces(textposition="outside")
         fig.update_layout(
             height=400,
-            yaxis=dict(visible=False)
+            yaxis=dict(visible=False),
+            xaxis_title="",
+            yaxis_title=""
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+        # -----------------------
+        # Recurring Section
+        # -----------------------
+        st.subheader("🔁 Recurring Breakdown")
+
+        rec = filtered[filtered["recurring"].str.lower() == "recurring"]
+
+        if not rec.empty:
+            rec_cat = rec.groupby("category")["amount"].sum().reset_index()
+            rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+            fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
+
+            fig2.update_traces(textposition="outside")
+            fig2.update_layout(
+                height=400,
+                yaxis=dict(visible=False)
+            )
+
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.info("No recurring expenses")
 
 # -----------------------
 # Compare
@@ -184,3 +235,16 @@ elif menu == "Compare":
         fig.update_layout(height=400)
 
         st.plotly_chart(fig, use_container_width=True)
+
+        # Insights
+        st.subheader("🧠 Insights")
+
+        total1 = df1["amount"].sum()
+        total2 = df2["amount"].sum()
+
+        diff = total1 - total2
+
+        if diff > 0:
+            st.warning(f"⚠️ {m1} is ₹{diff:,.0f} higher than {m2}")
+        else:
+            st.success(f"✅ {m1} is ₹{abs(diff):,.0f} lower than {m2}")
