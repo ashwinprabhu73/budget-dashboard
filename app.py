@@ -60,7 +60,6 @@ if menu == "Upload File":
 
         df_list = []
         for sheet_name, sheet_data in all_sheets.items():
-            sheet_data["Sheet"] = sheet_name
             df_list.append(sheet_data)
 
         df = pd.concat(df_list, ignore_index=True)
@@ -106,52 +105,50 @@ elif menu == "Add Entry":
         st.success("Saved!")
 
 # -----------------------
-# Dashboard
+# Dashboard (FIXED UX)
 # -----------------------
 elif menu == "Dashboard":
     df = load_data()
 
     if df.empty:
-        st.warning("No data")
+        st.warning("No data available")
     else:
         df["date"] = pd.to_datetime(df["date"], errors='coerce')
         df["year"] = df["date"].dt.year
         df["month"] = df["date"].dt.strftime("%B")
 
         # -----------------------
-        # Filters
+        # Year Selection (ONLY ONCE)
         # -----------------------
-        col1, col2 = st.columns(2)
-
         years = sorted(df["year"].dropna().unique())
-        selected_year = col1.selectbox("Year", years)
-
-        months = df[df["year"] == selected_year]["month"].unique()
-        selected_month = col2.selectbox("Month", months)
+        selected_year = st.selectbox("📅 Select Year", years)
 
         # -----------------------
-        # Top Cards (NEW)
+        # Top Cards (RIGHT BELOW TITLE)
         # -----------------------
         year_df = df[df["year"] == selected_year]
         yearly_total = year_df["amount"].sum()
 
-        c1, c2 = st.columns(2)
+        c1, c2 = st.columns([1, 1])
 
         with c1:
             st.markdown("### 📅 Year")
             st.info(f"{selected_year}")
 
         with c2:
-            st.markdown("### 💰 Total Spend (Year)")
+            st.markdown("### 💰 Total Spend")
             st.success(f"₹{yearly_total:,.0f}")
 
         # -----------------------
-        # Month Data
+        # Month Selection (ONLY MONTH)
         # -----------------------
-        filtered = df[
-            (df["year"] == selected_year) &
-            (df["month"] == selected_month)
-        ]
+        months = year_df["month"].unique()
+        selected_month = st.selectbox("📊 Select Month", months)
+
+        # -----------------------
+        # Filter Data
+        # -----------------------
+        filtered = year_df[year_df["month"] == selected_month]
 
         # -----------------------
         # Category Chart
@@ -235,16 +232,3 @@ elif menu == "Compare":
         fig.update_layout(height=400)
 
         st.plotly_chart(fig, use_container_width=True)
-
-        # Insights
-        st.subheader("🧠 Insights")
-
-        total1 = df1["amount"].sum()
-        total2 = df2["amount"].sum()
-
-        diff = total1 - total2
-
-        if diff > 0:
-            st.warning(f"⚠️ {m1} is ₹{diff:,.0f} higher than {m2}")
-        else:
-            st.success(f"✅ {m1} is ₹{abs(diff):,.0f} lower than {m2}")
