@@ -59,7 +59,7 @@ if menu == "Upload File":
         all_sheets = pd.read_excel(file, sheet_name=None)
 
         df_list = []
-        for sheet_name, sheet_data in all_sheets.items():
+        for _, sheet_data in all_sheets.items():
             df_list.append(sheet_data)
 
         df = pd.concat(df_list, ignore_index=True)
@@ -82,7 +82,7 @@ if menu == "Upload File":
                 "", "", "", "", "", ""
             ])
 
-        st.success("✅ Multi-sheet data uploaded!")
+        st.success("✅ Data uploaded successfully!")
 
 # -----------------------
 # Add Entry
@@ -102,10 +102,10 @@ elif menu == "Add Entry":
             amount,
             "", "", "", "", "", ""
         ])
-        st.success("Saved!")
+        st.success("Saved successfully!")
 
 # -----------------------
-# Dashboard (FIXED UX)
+# Dashboard
 # -----------------------
 elif menu == "Dashboard":
     df = load_data()
@@ -118,36 +118,32 @@ elif menu == "Dashboard":
         df["month"] = df["date"].dt.strftime("%B")
 
         # -----------------------
-        # Year Selection (ONLY ONCE)
+        # Year Selection
         # -----------------------
         years = sorted(df["year"].dropna().unique())
         selected_year = st.selectbox("📅 Select Year", years)
 
-        # -----------------------
-        # Top Cards (RIGHT BELOW TITLE)
-        # -----------------------
         year_df = df[df["year"] == selected_year]
-        yearly_total = year_df["amount"].sum()
-
-        c1, c2 = st.columns([1, 1])
-
-        with c1:
-            st.markdown("### 📅 Year")
-            st.info(f"{selected_year}")
-
-        with c2:
-            st.markdown("### 💰 Total Spend")
-            st.success(f"₹{yearly_total:,.0f}")
 
         # -----------------------
-        # Month Selection (ONLY MONTH)
+        # Total Spend + Monthly Avg
+        # -----------------------
+        yearly_total = year_df["amount"].sum()
+        months_count = year_df["month"].nunique()
+
+        avg_monthly = yearly_total / months_count if months_count > 0 else 0
+
+        st.markdown("### 💰 Total Spend")
+        st.success(f"₹{yearly_total:,.0f}")
+
+        st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
+
+        # -----------------------
+        # Month Selection
         # -----------------------
         months = year_df["month"].unique()
         selected_month = st.selectbox("📊 Select Month", months)
 
-        # -----------------------
-        # Filter Data
-        # -----------------------
         filtered = year_df[year_df["month"] == selected_month]
 
         # -----------------------
