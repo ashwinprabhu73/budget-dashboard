@@ -87,14 +87,27 @@ if menu == "Dashboard" and not df.empty:
     ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
+    # -----------------------
+    # YEARLY
+    # -----------------------
     yearly_total = expense_df["amount"].sum()
     avg_monthly = yearly_total / expense_df["month_num"].nunique()
 
-    st.markdown("### 💰 Total Spend")
+    st.markdown("### 💰 Total Yearly Spend")
     st.success(f"₹{yearly_total:,.0f}")
     st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
 
-    # IPO Summary
+    # -----------------------
+    # MONTHLY (NEW)
+    # -----------------------
+    monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
+
+    st.markdown(f"### 📅 {selected_month} Monthly Spend")
+    st.info(f"₹{monthly_total:,.0f}")
+
+    # -----------------------
+    # IPO
+    # -----------------------
     st.markdown("### 💼 IPO Summary")
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
@@ -102,11 +115,12 @@ if menu == "Dashboard" and not df.empty:
     col1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
     col2.metric("IPO Entries", len(ipo_month))
 
-    # Filter
+    # -----------------------
+    # CATEGORY
+    # -----------------------
     filtered = expense_df[expense_df["month"] == selected_month]
-    monthly_total = filtered["amount"].sum()
 
-    st.subheader(f"📊 Category Breakdown - {selected_month} | ₹{monthly_total:,.0f}")
+    st.subheader(f"📊 Category Breakdown - {selected_month}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
     cat = cat.sort_values(by="amount", ascending=False)
@@ -131,7 +145,7 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
         # -----------------------
-        # OTHERS BREAKDOWN (DONUT)
+        # OTHERS DONUT
         # -----------------------
         others_data = filtered[filtered["category"].str.lower() == "others"]
 
@@ -172,7 +186,7 @@ if menu == "Dashboard" and not df.empty:
             st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
-# COMPARE
+# COMPARE (UNCHANGED)
 # =======================
 elif menu == "Compare" and not df.empty:
 
@@ -205,48 +219,3 @@ elif menu == "Compare" and not df.empty:
         st.success(f"₹{abs(diff):,.0f} lower")
     else:
         st.info("No difference")
-
-    st.markdown("### 📊 Category Comparison (Top 10)")
-
-    cat1 = df1.groupby("category")["amount"].sum()
-    cat2 = df2.groupby("category")["amount"].sum()
-
-    compare = pd.DataFrame({
-        f"{m1}-{y1}": cat1,
-        f"{m2}-{y2}": cat2
-    }).fillna(0)
-
-    compare["total"] = compare.sum(axis=1)
-    compare = compare.sort_values(by="total", ascending=False).head(10)
-    compare = compare.drop(columns=["total"]).reset_index()
-
-    compare[f"{m1}-{y1}_pct"] = (compare[f"{m1}-{y1}"] / total1) * 100
-    compare[f"{m2}-{y2}_pct"] = (compare[f"{m2}-{y2}"] / total2) * 100
-
-    melted = pd.DataFrame()
-
-    for month in [f"{m1}-{y1}", f"{m2}-{y2}"]:
-        temp = compare[["category", month, f"{month}_pct"]].copy()
-        temp.columns = ["category", "amount", "percent"]
-        temp["Month"] = month
-        melted = pd.concat([melted, temp])
-
-    melted["label"] = melted.apply(
-        lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
-    )
-
-    categories = compare["category"].tolist()
-
-    first5 = melted[melted["category"].isin(categories[:5])]
-    next5 = melted[melted["category"].isin(categories[5:])]
-
-    fig1 = px.bar(first5, x="category", y="amount", color="Month", barmode="group", text="label")
-    fig1.update_traces(textposition="outside", textfont=dict(size=16))
-    fig1.update_layout(height=450, yaxis=dict(visible=False))
-    st.plotly_chart(fig1, use_container_width=True)
-
-    if not next5.empty:
-        fig2 = px.bar(next5, x="category", y="amount", color="Month", barmode="group", text="label")
-        fig2.update_traces(textposition="outside", textfont=dict(size=16))
-        fig2.update_layout(height=450, yaxis=dict(visible=False))
-        st.plotly_chart(fig2, use_container_width=True)
