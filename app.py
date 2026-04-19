@@ -11,7 +11,7 @@ def extract_sheet_id(input_text):
     return input_text
 
 # -----------------------
-# Load Google Sheet (ALL TABS)
+# Load Google Sheet
 # -----------------------
 def load_google_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -24,7 +24,7 @@ def load_google_sheet(sheet_id):
     return pd.concat(df_list, ignore_index=True)
 
 # -----------------------
-# Load Excel Upload
+# Load Excel
 # -----------------------
 def load_excel(file):
     all_sheets = pd.read_excel(file, sheet_name=None)
@@ -36,7 +36,7 @@ def load_excel(file):
     return pd.concat(df_list, ignore_index=True)
 
 # -----------------------
-# Standardize Columns
+# Preprocess
 # -----------------------
 def preprocess(df):
     df = df.rename(columns={
@@ -63,53 +63,46 @@ def preprocess(df):
 st.set_page_config(layout="wide")
 st.title("💰 Smart Budget Dashboard")
 
+menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
+
 # -----------------------
-# Data Source Selection
+# Data Source
 # -----------------------
 source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
 
 df = pd.DataFrame()
 
-# -----------------------
-# Google Sheet Option
-# -----------------------
 if source == "Google Sheet":
     sheet_input = st.text_input("🔗 Paste Google Sheet URL or ID")
 
     if sheet_input:
         sheet_id = extract_sheet_id(sheet_input)
-
-        if st.button("🔄 Refresh Data"):
-            st.rerun()
-
         df = load_google_sheet(sheet_id)
 
-# -----------------------
-# Excel Upload Option
-# -----------------------
 elif source == "Upload Excel":
-    file = st.file_uploader("Upload Excel (multi-tab supported)", type=["xlsx"])
-
+    file = st.file_uploader("Upload Excel", type=["xlsx"])
     if file:
         df = load_excel(file)
 
 # -----------------------
-# Main Dashboard Logic
+# PROCESS DATA
 # -----------------------
 if not df.empty:
     df = preprocess(df)
 
-    # Year selection
+# =======================
+# DASHBOARD
+# =======================
+if menu == "Dashboard" and not df.empty:
+
     years = sorted(df["year"].unique())
     selected_year = st.selectbox("📅 Select Year", years)
 
     year_df = df[df["year"] == selected_year]
 
-    # Split IPO
     ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
-    # Total + Avg
     yearly_total = expense_df["amount"].sum()
     month_count = expense_df["month_num"].nunique()
     avg_monthly = yearly_total / month_count if month_count else 0
@@ -118,27 +111,23 @@ if not df.empty:
     st.success(f"₹{yearly_total:,.0f}")
     st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
 
-    # Month selection
     months = year_df["month"].unique()
     selected_month = st.selectbox("📊 Select Month", months)
 
-    # IPO Summary
+    # IPO
     st.markdown("### 💼 IPO Summary")
-
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
     col1, col2 = st.columns(2)
     col1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
     col2.metric("IPO Entries", len(ipo_month))
 
-    # Expense Filter
+    # Expense Chart
     filtered = expense_df[expense_df["month"] == selected_month]
 
-    # Category Chart
     st.subheader(f"📊 Category Breakdown - {selected_month}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
-    cat = cat.sort_values(by="amount", ascending=False)
 
     if not cat.empty:
         cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
@@ -148,22 +137,54 @@ if not df.empty:
         fig.update_layout(height=400, yaxis=dict(visible=False))
 
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("No expense data")
 
-    # Recurring
-    st.subheader("🔁 Recurring Breakdown")
+# =======================
+# COMPARE TAB (NEW 🔥)
+# =======================
+elif menu == "Compare" and not df.empty:
 
-    rec = filtered[filtered["recurring"].str.lower() == "recurring"]
+    st.subheader("⚖️ Compare Months")
 
-    if not rec.empty:
-        rec_cat = rec.groupby("category")["amount"].sum().reset_index()
-        rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
+    years = sorted(df["year"].unique())
 
-        fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
-        fig2.update_traces(textposition="outside")
-        fig2.update_layout(height=400, yaxis=dict(visible=False))
+    col1, col2 = st.columns(2)
+    y1 = col1.selectbox("Year 1", years)
+    y2 = col2.selectbox("Year 2", years)
 
-        st.plotly_chart(fig2, use_container_width=True)
-    else:
-        st.info("No recurring expenses")
+    m1 = col1.selectbox("Month 1", df[df["year"] == y1]["month"].unique())
+    m2 = col2.selectbox("Month 2", df[df["year"] == y2]["month"].unique())
+
+    df1 = df[(df["year"] == y1) & (df["month"] == m1)]
+    df2 = df[(df["year"] == y2) & (df["month"] == m2)]
+
+    # Remove IPO from comparison
+    df1 = df1[df1["category"].str.lower() != "ipo"]
+    df2 = df2[df2["category"].str.lower() != "ipo"]
+
+    cat1 = df1.groupby("category")["amount"].sum()
+    cat2 = df2.groupby("category")["amount"].sum()
+
+    compare = pd.DataFrame({
+        f"{m1}-{y1}": cat1,
+        f"{m2}-{y2}": cat2
+    }).fillna(0).reset_index()
+
+    if not compare.empty:
+        fig = px.bar(compare, x="category", y=compare.columns[1:], barmode="group")
+
+        fig.update_layout(height=400)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Insight
+        total1 = df1["amount"].sum()
+        total2 = df2["amount"].sum()
+
+        diff = total1 - total2
+
+        st.subheader("🧠 Insights")
+
+        if diff > 0:
+            st.warning(f"{m1}-{y1} is ₹{diff:,.0f} higher")
+        else:
+            st.success(f"{m1}-{y1} is ₹{abs(diff):,.0f} lower")
