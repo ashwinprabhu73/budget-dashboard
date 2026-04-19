@@ -3,102 +3,114 @@ import pandas as pd
 import plotly.express as px
 
 # -----------------------
-# CONFIG (MUST BE FIRST)
+# CONFIG
 # -----------------------
 st.set_page_config(layout="wide")
 
 # -----------------------
-# CRED STYLE UI
+# DESIGN SYSTEM (CRED STYLE)
 # -----------------------
 st.markdown("""
 <style>
 
-/* BACKGROUND */
+/* ===== BASE ===== */
 body {
-    background-color: #0f0f10;
+    background-color: #0e0e0f;
     color: #ffffff;
 }
 
-/* MAIN CONTAINER */
 .block-container {
     padding-top: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
 }
 
-/* TITLE */
+/* ===== TITLE ===== */
 h1 {
     color: #ffffff;
     font-weight: 600;
+    letter-spacing: 0.3px;
 }
 
-/* SIDEBAR */
+/* ===== SIDEBAR ===== */
 section[data-testid="stSidebar"] {
     background: #000000;
-    color: #cfcfcf;
+    color: #bfbfbf;
 }
 
-/* CARDS */
-.premium-card {
+/* ===== CARD SYSTEM ===== */
+.card {
     background: #18181b;
-    padding: 20px;
-    border-radius: 16px;
+    border-radius: 18px;
+    padding: 22px;
     border: 1px solid #2a2a2e;
 }
 
-/* BIG NUMBERS */
-.big-number {
-    font-size: 30px;
-    font-weight: 700;
-    color: #ffffff;
+/* ===== KPI CARDS ===== */
+.kpi-card {
+    background: #18181b;
+    border-radius: 18px;
+    padding: 24px;
+    border: 1px solid #2a2a2e;
 }
 
-/* LABEL */
-.caption {
+/* ===== KPI TEXT ===== */
+.kpi-label {
     font-size: 12px;
     color: #9ca3af;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-/* IPO CARD */
+.kpi-value {
+    font-size: 34px;
+    font-weight: 700;
+    margin-top: 6px;
+}
+
+/* ===== GOLD ACCENT IPO ===== */
 .gold-card {
     background: #18181b;
+    border-radius: 18px;
     padding: 22px;
-    border-radius: 16px;
     border: 1px solid #2a2a2e;
     position: relative;
 }
 
-/* GOLD ACCENT LINE */
 .gold-card::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
-    height: 3px;
+    height: 4px;
     width: 100%;
     background: linear-gradient(90deg, #d4af37, #f5d77a);
-    border-top-left-radius: 16px;
-    border-top-right-radius: 16px;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
 }
 
-/* IPO TEXT */
 .gold-title {
-    font-size: 13px;
     color: #d4af37;
+    font-size: 13px;
     margin-bottom: 10px;
 }
 
 .gold-value {
     font-size: 18px;
     font-weight: 600;
-    color: #ffffff;
 }
 
-/* DIVIDER */
+/* ===== SECTION SPACING ===== */
+.section {
+    margin-top: 25px;
+}
+
+/* ===== DIVIDER ===== */
 hr {
     border: none;
     height: 1px;
     background: #2a2a2e;
-    margin: 25px 0;
+    margin: 30px 0;
 }
 
 </style>
@@ -174,43 +186,46 @@ if menu == "Dashboard" and not df.empty:
     yearly_total = expense_df["amount"].sum()
     monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
-    # CARDS
+    # -----------------------
+    # KPI CARDS
+    # -----------------------
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(f"""
-        <div class="premium-card">
-            <div class="caption">Total Yearly Spend</div>
-            <div class="big-number">₹{yearly_total:,.0f}</div>
+        <div class="kpi-card">
+            <div class="kpi-label">Total Yearly Spend</div>
+            <div class="kpi-value">₹{yearly_total:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"""
-        <div class="premium-card">
-            <div class="caption">{selected_month} Monthly Spend</div>
-            <div class="big-number">₹{monthly_total:,.0f}</div>
+        <div class="kpi-card">
+            <div class="kpi-label">{selected_month} Monthly Spend</div>
+            <div class="kpi-value">₹{monthly_total:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
-
+    # -----------------------
     # IPO
+    # -----------------------
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
     st.markdown(f"""
-    <div class="gold-card">
-        <div class="gold-title">💼 IPO Summary</div>
+    <div class="gold-card section">
+        <div class="gold-title">IPO SUMMARY</div>
         <div class="gold-value">Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
         <div class="gold-value">Entries: {len(ipo_month)}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
-
+    # -----------------------
     # CATEGORY
+    # -----------------------
     filtered = expense_df[expense_df["month"] == selected_month]
 
+    st.markdown('<div class="section">', unsafe_allow_html=True)
     st.subheader(f"📊 Category Breakdown - {selected_month}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
@@ -227,14 +242,16 @@ if menu == "Dashboard" and not df.empty:
         fig.update_traces(textposition="outside", textfont=dict(size=16))
         fig.update_layout(
             yaxis=dict(visible=False),
-            plot_bgcolor="#0f0f10",
-            paper_bgcolor="#0f0f10",
+            plot_bgcolor="#0e0e0f",
+            paper_bgcolor="#0e0e0f",
             font=dict(color="white")
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
+    # -----------------------
     # OTHERS
+    # -----------------------
     others_data = filtered[filtered["category"].str.lower() == "others"]
 
     if not others_data.empty:
@@ -245,8 +262,8 @@ if menu == "Dashboard" and not df.empty:
         fig2 = px.pie(others_group, names="description", values="amount", hole=0.5)
 
         fig2.update_layout(
-            plot_bgcolor="#0f0f10",
-            paper_bgcolor="#0f0f10",
+            plot_bgcolor="#0e0e0f",
+            paper_bgcolor="#0e0e0f",
             font=dict(color="white")
         )
 
