@@ -8,50 +8,56 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # -----------------------
-# DESIGN SYSTEM (CRED STYLE)
+# ULTRA PREMIUM UI (CAR BLACK + GOLD)
 # -----------------------
 st.markdown("""
 <style>
 
-/* ===== BASE ===== */
+/* ===== GLOSSY BLACK BACKGROUND ===== */
 body {
-    background-color: #0e0e0f;
+    background: radial-gradient(circle at top left, #1a1a1d, #0a0a0c 60%);
     color: #ffffff;
 }
 
+/* ===== MAIN CONTAINER ===== */
 .block-container {
     padding-top: 2rem;
-    padding-left: 2rem;
-    padding-right: 2rem;
 }
 
 /* ===== TITLE ===== */
 h1 {
-    color: #ffffff;
+    color: #f5f5f5;
     font-weight: 600;
-    letter-spacing: 0.3px;
 }
 
 /* ===== SIDEBAR ===== */
 section[data-testid="stSidebar"] {
-    background: #000000;
-    color: #bfbfbf;
+    background: linear-gradient(180deg, #0a0a0c, #000000);
+    color: #d4af37;
 }
 
-/* ===== CARD SYSTEM ===== */
+/* ===== CARD ===== */
 .card {
-    background: #18181b;
+    background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 18px;
     padding: 22px;
     border: 1px solid #2a2a2e;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
 }
 
-/* ===== KPI CARDS ===== */
+/* ===== KPI ===== */
 .kpi-card {
-    background: #18181b;
+    background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 18px;
     padding: 24px;
     border: 1px solid #2a2a2e;
+}
+
+/* ===== GOLD TEXT ===== */
+.gold-text {
+    background: linear-gradient(90deg, #d4af37, #f5d77a, #d4af37);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 /* ===== KPI TEXT ===== */
@@ -63,46 +69,40 @@ section[data-testid="stSidebar"] {
 }
 
 .kpi-value {
-    font-size: 34px;
+    font-size: 36px;
     font-weight: 700;
-    margin-top: 6px;
 }
 
-/* ===== GOLD ACCENT IPO ===== */
+/* ===== IPO CARD ===== */
 .gold-card {
-    background: #18181b;
+    background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 18px;
-    padding: 22px;
+    padding: 24px;
     border: 1px solid #2a2a2e;
     position: relative;
 }
 
+/* GOLD LINE */
 .gold-card::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
-    height: 4px;
+    height: 3px;
     width: 100%;
     background: linear-gradient(90deg, #d4af37, #f5d77a);
-    border-top-left-radius: 18px;
-    border-top-right-radius: 18px;
 }
 
+/* IPO TEXT */
 .gold-title {
-    color: #d4af37;
     font-size: 13px;
+    color: #d4af37;
     margin-bottom: 10px;
 }
 
 .gold-value {
     font-size: 18px;
     font-weight: 600;
-}
-
-/* ===== SECTION SPACING ===== */
-.section {
-    margin-top: 25px;
 }
 
 /* ===== DIVIDER ===== */
@@ -121,15 +121,6 @@ st.title("💰 Smart Budget Dashboard")
 # -----------------------
 # HELPERS (UNCHANGED)
 # -----------------------
-def extract_sheet_id(input_text):
-    if "docs.google.com" in input_text:
-        return input_text.split("/d/")[1].split("/")[0]
-    return input_text
-
-def load_google_sheet(sheet_id):
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
-    return pd.concat(pd.read_excel(url, sheet_name=None).values(), ignore_index=True)
-
 def load_excel(file):
     return pd.concat(pd.read_excel(file, sheet_name=None).values(), ignore_index=True)
 
@@ -148,30 +139,12 @@ def preprocess(df):
     return df.sort_values(["year", "month_num"])
 
 # -----------------------
-# DATA SOURCE
+# FILE UPLOAD (UNCHANGED)
 # -----------------------
-menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
-source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
+file = st.file_uploader("Upload Excel", type=["xlsx"])
 
-df = pd.DataFrame()
-
-if source == "Google Sheet":
-    sheet_input = st.text_input("Paste Google Sheet URL/ID")
-    if sheet_input:
-        df = load_google_sheet(extract_sheet_id(sheet_input))
-
-elif source == "Upload Excel":
-    file = st.file_uploader("Upload Excel", type=["xlsx"])
-    if file:
-        df = load_excel(file)
-
-if not df.empty:
-    df = preprocess(df)
-
-# =======================
-# DASHBOARD
-# =======================
-if menu == "Dashboard" and not df.empty:
+if file:
+    df = preprocess(load_excel(file))
 
     years = sorted(df["year"].unique())
     selected_year = st.selectbox("Select Year", years, index=len(years)-1)
@@ -186,16 +159,14 @@ if menu == "Dashboard" and not df.empty:
     yearly_total = expense_df["amount"].sum()
     monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
-    # -----------------------
     # KPI CARDS
-    # -----------------------
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-label">Total Yearly Spend</div>
-            <div class="kpi-value">₹{yearly_total:,.0f}</div>
+            <div class="kpi-value gold-text">₹{yearly_total:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -203,103 +174,43 @@ if menu == "Dashboard" and not df.empty:
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-label">{selected_month} Monthly Spend</div>
-            <div class="kpi-value">₹{monthly_total:,.0f}</div>
+            <div class="kpi-value gold-text">₹{monthly_total:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
-    # -----------------------
+    st.markdown("<hr>", unsafe_allow_html=True)
+
     # IPO
-    # -----------------------
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
     st.markdown(f"""
-    <div class="gold-card section">
+    <div class="gold-card">
         <div class="gold-title">IPO SUMMARY</div>
         <div class="gold-value">Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
         <div class="gold-value">Entries: {len(ipo_month)}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # -----------------------
+    st.markdown("<hr>", unsafe_allow_html=True)
+
     # CATEGORY
-    # -----------------------
     filtered = expense_df[expense_df["month"] == selected_month]
 
-    st.markdown('<div class="section">', unsafe_allow_html=True)
     st.subheader(f"📊 Category Breakdown - {selected_month}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
 
     if not cat.empty:
-        total = cat["amount"].sum()
-        cat["percent"] = (cat["amount"] / total) * 100
-        cat["label"] = cat.apply(
-            lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
-        )
+        cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
         fig = px.bar(cat, x="category", y="amount", text="label")
 
         fig.update_traces(textposition="outside", textfont=dict(size=16))
         fig.update_layout(
             yaxis=dict(visible=False),
-            plot_bgcolor="#0e0e0f",
-            paper_bgcolor="#0e0e0f",
+            plot_bgcolor="#0a0a0c",
+            paper_bgcolor="#0a0a0c",
             font=dict(color="white")
         )
 
         st.plotly_chart(fig, use_container_width=True)
-
-    # -----------------------
-    # OTHERS
-    # -----------------------
-    others_data = filtered[filtered["category"].str.lower() == "others"]
-
-    if not others_data.empty:
-        st.markdown("### 🔍 Others Breakdown")
-
-        others_group = others_data.groupby("description")["amount"].sum().reset_index()
-
-        fig2 = px.pie(others_group, names="description", values="amount", hole=0.5)
-
-        fig2.update_layout(
-            plot_bgcolor="#0e0e0f",
-            paper_bgcolor="#0e0e0f",
-            font=dict(color="white")
-        )
-
-        st.plotly_chart(fig2, use_container_width=True)
-
-# =======================
-# COMPARE (UNCHANGED)
-# =======================
-elif menu == "Compare" and not df.empty:
-
-    st.subheader("⚖️ Compare Months")
-
-    col1, col2 = st.columns(2)
-
-    y1 = col1.selectbox("Year 1", sorted(df["year"].unique()))
-    y2 = col2.selectbox("Year 2", sorted(df["year"].unique()))
-
-    m1 = col1.selectbox("Month 1", df[df["year"] == y1]["month"].unique())
-    m2 = col2.selectbox("Month 2", df[df["year"] == y2]["month"].unique())
-
-    df1 = df[(df["year"] == y1) & (df["month"] == m1)]
-    df2 = df[(df["year"] == y2) & (df["month"] == m2)]
-
-    df1 = df1[df1["category"].str.lower() != "ipo"]
-    df2 = df2[df2["category"].str.lower() != "ipo"]
-
-    total1 = df1["amount"].sum()
-    total2 = df2["amount"].sum()
-
-    diff = total1 - total2
-
-    st.markdown("### 🔥 Total Difference")
-
-    if diff > 0:
-        st.error(f"₹{abs(diff):,.0f} higher")
-    elif diff < 0:
-        st.success(f"₹{abs(diff):,.0f} lower")
-    else:
-        st.info("No difference")
