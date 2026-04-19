@@ -45,10 +45,10 @@ def preprocess(df):
     df["month_num"] = df["date"].dt.month
     df["month"] = df["date"].dt.strftime("%B")
 
-    return df.sort_values("month_num")
+    return df.sort_values(["year", "month_num"])
 
 # -----------------------
-# UI START
+# UI
 # -----------------------
 st.set_page_config(layout="wide")
 st.title("💰 Smart Budget Dashboard")
@@ -76,8 +76,17 @@ if not df.empty:
 # =======================
 if menu == "Dashboard" and not df.empty:
 
-    selected_year = st.selectbox("📅 Select Year", sorted(df["year"].unique()))
+    years = sorted(df["year"].unique())
+    latest_year = max(years)
+
+    selected_year = st.selectbox("📅 Select Year", years, index=len(years)-1)
+
     year_df = df[df["year"] == selected_year]
+
+    months = year_df.sort_values("month_num")["month"].unique()
+    latest_month = months[-1]
+
+    selected_month = st.selectbox("📊 Select Month", months, index=len(months)-1)
 
     ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
@@ -89,8 +98,6 @@ if menu == "Dashboard" and not df.empty:
     st.success(f"₹{yearly_total:,.0f}")
     st.markdown(f"**Avg: ₹{avg_monthly:,.0f} / month**")
 
-    selected_month = st.selectbox("📊 Select Month", year_df["month"].unique())
-
     # IPO Summary
     st.markdown("### 💼 IPO Summary")
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
@@ -99,7 +106,6 @@ if menu == "Dashboard" and not df.empty:
     col1.metric("IPO Amount", f"₹{ipo_month['amount'].sum():,.0f}")
     col2.metric("IPO Entries", len(ipo_month))
 
-    # Filter
     filtered = expense_df[expense_df["month"] == selected_month]
     monthly_total = filtered["amount"].sum()
 
@@ -117,37 +123,15 @@ if menu == "Dashboard" and not df.empty:
         )
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-        fig.update_traces(textposition="outside")
+
+        fig.update_traces(
+            textposition="outside",
+            textfont=dict(size=16)  # 🔥 Increased font
+        )
+
         fig.update_layout(height=400, yaxis=dict(visible=False))
 
         st.plotly_chart(fig, use_container_width=True)
-
-        # Others Breakdown
-        others_data = filtered[filtered["category"].str.lower() == "others"]
-
-        if not others_data.empty:
-            st.markdown("### 🔍 Others Breakdown")
-
-            others_group = others_data.groupby("description")["amount"].sum().reset_index()
-            total_others = others_group["amount"].sum()
-
-            others_group["percent"] = (others_group["amount"] / total_others) * 100
-
-            major = others_group[others_group["percent"] >= 1]
-            minor = others_group[others_group["percent"] < 1]
-
-            misc_total = minor["amount"].sum()
-
-            if misc_total > 0:
-                major = pd.concat([
-                    major,
-                    pd.DataFrame([{"description": "Miscellaneous", "amount": misc_total}])
-                ])
-
-            fig2 = px.pie(major, names="description", values="amount", hole=0.5)
-            fig2.update_traces(textinfo="percent+label")
-
-            st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
 # COMPARE
@@ -184,9 +168,6 @@ elif menu == "Compare" and not df.empty:
     else:
         st.info("No difference")
 
-    # -----------------------
-    # CATEGORY COMPARISON
-    # -----------------------
     st.markdown("### 📊 Category Comparison (Top 10)")
 
     cat1 = df1.groupby("category")["amount"].sum()
@@ -216,38 +197,24 @@ elif menu == "Compare" and not df.empty:
         lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
     )
 
-    # Split correctly by category
     categories = compare["category"].tolist()
+
     first5 = melted[melted["category"].isin(categories[:5])]
     next5 = melted[melted["category"].isin(categories[5:])]
 
     # Chart 1
-    fig1 = px.bar(
-        first5,
-        x="category",
-        y="amount",
-        color="Month",
-        barmode="group",
-        text="label"
-    )
+    fig1 = px.bar(first5, x="category", y="amount", color="Month", barmode="group", text="label")
 
-    fig1.update_traces(textposition="outside", textfont=dict(size=14))
+    fig1.update_traces(textposition="outside", textfont=dict(size=16))
     fig1.update_layout(height=450, yaxis=dict(visible=False))
 
     st.plotly_chart(fig1, use_container_width=True)
 
     # Chart 2
     if not next5.empty:
-        fig2 = px.bar(
-            next5,
-            x="category",
-            y="amount",
-            color="Month",
-            barmode="group",
-            text="label"
-        )
+        fig2 = px.bar(next5, x="category", y="amount", color="Month", barmode="group", text="label")
 
-        fig2.update_traces(textposition="outside", textfont=dict(size=14))
+        fig2.update_traces(textposition="outside", textfont=dict(size=16))
         fig2.update_layout(height=450, yaxis=dict(visible=False))
 
         st.plotly_chart(fig2, use_container_width=True)
