@@ -3,41 +3,36 @@ import pandas as pd
 import plotly.express as px
 
 # -----------------------
-# CONFIG (UNCHANGED)
+# CONFIG
 # -----------------------
 st.set_page_config(layout="wide")
 
 # -----------------------
-# ULTRA PREMIUM UI (SAFE)
+# PREMIUM UI (CAR BLACK + GOLD)
 # -----------------------
 st.markdown("""
 <style>
 
-/* ===== BACKGROUND (CAR BLACK GLOSS) ===== */
+/* BACKGROUND */
 body {
     background: radial-gradient(circle at top left, #1b1b1f, #0a0a0c 60%);
     color: #ffffff;
 }
 
-/* ===== MAIN CONTAINER ===== */
-.block-container {
-    padding-top: 2rem;
-}
-
-/* ===== TITLE ===== */
+/* TITLE */
 h1 {
     color: #f5f5f5;
     font-weight: 600;
 }
 
-/* ===== SIDEBAR ===== */
+/* SIDEBAR */
 section[data-testid="stSidebar"] {
     background: #000000;
     color: #cfcfcf;
 }
 
-/* ===== CARDS ===== */
-.premium-card, .kpi-card {
+/* CARDS */
+.premium-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
     padding: 22px;
@@ -45,14 +40,13 @@ section[data-testid="stSidebar"] {
     box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
-/* ===== TEXT ===== */
+/* TEXT */
 .caption {
     font-size: 12px;
     color: #9ca3af;
-    text-transform: uppercase;
 }
 
-.big-number, .kpi-value {
+.big-number {
     font-size: 32px;
     font-weight: 700;
     background: linear-gradient(90deg, #d4af37, #f5d77a);
@@ -60,7 +54,7 @@ section[data-testid="stSidebar"] {
     -webkit-text-fill-color: transparent;
 }
 
-/* ===== IPO CARD ===== */
+/* IPO CARD */
 .gold-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
@@ -73,25 +67,22 @@ section[data-testid="stSidebar"] {
     content: "";
     position: absolute;
     top: 0;
-    left: 0;
     height: 3px;
     width: 100%;
     background: linear-gradient(90deg, #d4af37, #f5d77a);
 }
 
 .gold-title {
-    font-size: 13px;
     color: #d4af37;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .gold-value {
     font-size: 18px;
-    font-weight: 600;
     color: #ffffff;
 }
 
-/* ===== DIVIDER ===== */
+/* DIVIDER */
 hr {
     border: none;
     height: 1px;
@@ -105,7 +96,7 @@ hr {
 st.title("💰 Smart Budget Dashboard")
 
 # -----------------------
-# HELPERS (UNCHANGED)
+# HELPERS
 # -----------------------
 def extract_sheet_id(input_text):
     if "docs.google.com" in input_text:
@@ -134,7 +125,7 @@ def preprocess(df):
     return df.sort_values(["year", "month_num"])
 
 # -----------------------
-# DATA SOURCE (UNCHANGED)
+# DATA SOURCE
 # -----------------------
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
@@ -155,7 +146,7 @@ if not df.empty:
     df = preprocess(df)
 
 # =======================
-# DASHBOARD (UNCHANGED LOGIC)
+# DASHBOARD
 # =======================
 if menu == "Dashboard" and not df.empty:
 
@@ -213,22 +204,23 @@ if menu == "Dashboard" and not df.empty:
     if not cat.empty:
         total = cat["amount"].sum()
         cat["percent"] = (cat["amount"] / total) * 100
-        cat["label"] = cat.apply(
-            lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
-        )
+        cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1)
 
         fig = px.bar(cat, x="category", y="amount", text="label")
 
-        fig.update_traces(textposition="outside", textfont=dict(size=16))
+        fig.update_traces(textposition="outside", textfont=dict(size=16, color="white"))
         fig.update_layout(
             yaxis=dict(visible=False),
             plot_bgcolor="#0a0a0c",
             paper_bgcolor="#0a0a0c",
-            font=dict(color="white")
+            font=dict(color="white"),
+            legend=dict(font=dict(color="white")),
+            xaxis=dict(tickfont=dict(color="white"))
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
+    # OTHERS
     others_data = filtered[filtered["category"].str.lower() == "others"]
 
     if not others_data.empty:
@@ -241,13 +233,14 @@ if menu == "Dashboard" and not df.empty:
         fig2.update_layout(
             plot_bgcolor="#0a0a0c",
             paper_bgcolor="#0a0a0c",
-            font=dict(color="white")
+            font=dict(color="white"),
+            legend=dict(font=dict(color="white"))
         )
 
         st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
-# COMPARE (UNCHANGED)
+# COMPARE
 # =======================
 elif menu == "Compare" and not df.empty:
 
@@ -270,13 +263,36 @@ elif menu == "Compare" and not df.empty:
     total1 = df1["amount"].sum()
     total2 = df2["amount"].sum()
 
-    diff = total1 - total2
-
     st.markdown("### 🔥 Total Difference")
+    st.write(f"{m1}-{y1}: ₹{total1:,.0f}")
+    st.write(f"{m2}-{y2}: ₹{total2:,.0f}")
 
-    if diff > 0:
-        st.error(f"₹{abs(diff):,.0f} higher")
-    elif diff < 0:
-        st.success(f"₹{abs(diff):,.0f} lower")
-    else:
-        st.info("No difference")
+    # CATEGORY COMPARE
+    cat1 = df1.groupby("category")["amount"].sum()
+    cat2 = df2.groupby("category")["amount"].sum()
+
+    compare = pd.DataFrame({
+        f"{m1}-{y1}": cat1,
+        f"{m2}-{y2}": cat2
+    }).fillna(0)
+
+    compare["total"] = compare.sum(axis=1)
+    compare = compare.sort_values(by="total", ascending=False).head(10)
+    compare = compare.drop(columns=["total"]).reset_index()
+
+    melted = compare.melt(id_vars="category", var_name="Month", value_name="amount")
+    melted["label"] = melted["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+    fig = px.bar(melted, x="category", y="amount", color="Month", barmode="group", text="label")
+
+    fig.update_traces(textposition="outside", textfont=dict(size=14, color="white"))
+    fig.update_layout(
+        yaxis=dict(visible=False),
+        plot_bgcolor="#0a0a0c",
+        paper_bgcolor="#0a0a0c",
+        font=dict(color="white"),
+        legend=dict(font=dict(color="white")),
+        xaxis=dict(tickfont=dict(color="white"))
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
