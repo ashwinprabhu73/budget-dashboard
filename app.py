@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import plotly.express as px
 from datetime import datetime
 
 # -----------------------
@@ -64,7 +65,7 @@ st.title("💰 Smart Budget Dashboard")
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare", "Upload File", "Add Entry"])
 
 # -----------------------
-# Upload
+# Upload Section
 # -----------------------
 if menu == "Upload File":
     file = st.file_uploader("Upload your budget file", type=["xlsx", "csv"])
@@ -136,7 +137,7 @@ elif menu == "Add Entry":
         st.success("✅ Saved successfully!")
 
 # -----------------------
-# Dashboard (Single Month)
+# Dashboard (Plotly Clean)
 # -----------------------
 elif menu == "Dashboard":
     df = load_data()
@@ -171,25 +172,54 @@ elif menu == "Dashboard":
         col1.metric("Total Spend", f"₹{total:,.0f}")
         col2.metric("Recurring", f"₹{recurring:,.0f}")
 
-        # Category chart
+        # -----------------------
+        # Category Chart
+        # -----------------------
         st.subheader("📊 Category Breakdown")
 
-        cat = filtered_df.groupby("category")["amount"].sum().sort_values(ascending=False)
-        cat.index = [f"{get_icon(c)} {c}" for c in cat.index]
+        cat = filtered_df.groupby("category")["amount"].sum().reset_index()
+        cat = cat.sort_values(by="amount", ascending=False)
+        cat["label"] = cat["amount"].apply(lambda x: f"₹{x:,.0f}")
 
-        st.bar_chart(cat)
+        fig = px.bar(cat, x="category", y="amount", text="label")
 
-        # Recurring
+        fig.update_traces(textposition="outside")
+        fig.update_layout(
+            height=400,
+            yaxis=dict(visible=False),
+            xaxis_title="",
+            yaxis_title=""
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # -----------------------
+        # Recurring Chart
+        # -----------------------
         st.subheader("🔁 Recurring Breakdown")
+
         rec = filtered_df[filtered_df["recurring"].str.lower() == "recurring"]
 
         if not rec.empty:
-            st.bar_chart(rec.groupby("category")["amount"].sum())
+            rec_cat = rec.groupby("category")["amount"].sum().reset_index()
+            rec_cat["label"] = rec_cat["amount"].apply(lambda x: f"₹{x:,.0f}")
+
+            fig2 = px.bar(rec_cat, x="category", y="amount", text="label")
+
+            fig2.update_traces(textposition="outside")
+            fig2.update_layout(
+                height=400,
+                yaxis=dict(visible=False),
+                xaxis_title="",
+                yaxis_title=""
+            )
+
+            st.plotly_chart(fig2, use_container_width=True)
         else:
             st.info("No recurring expenses")
 
 # -----------------------
-# Compare Section (NEW)
+# Compare Section
 # -----------------------
 elif menu == "Compare":
     df = load_data()
@@ -221,11 +251,19 @@ elif menu == "Compare":
         compare = pd.DataFrame({
             m1: cat1,
             m2: cat2
-        }).fillna(0)
+        }).fillna(0).reset_index()
 
-        st.bar_chart(compare)
+        fig = px.bar(compare, x="category", y=[m1, m2], barmode="group")
 
-        # Insight
+        fig.update_layout(
+            height=400,
+            xaxis_title="",
+            yaxis_title=""
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Insights
         st.subheader("🧠 Insights")
 
         total1 = df1["amount"].sum()
