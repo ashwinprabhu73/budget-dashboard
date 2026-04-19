@@ -74,7 +74,18 @@ if menu == "Upload File":
         df = df.fillna("")
 
         for _, row in df.iterrows():
-            insert_data(row.values)
+        insert_data([
+        str(row.get("date", "")),
+        str(row.get("description", "")),
+        str(row.get("category", "")),
+        float(row.get("amount", 0) or 0),
+        str(row.get("paid_by", "")),
+        str(row.get("paid_via", "")),
+        str(row.get("bank", "")),
+        str(row.get("status", "")),
+        str(row.get("notes", "")),
+        str(row.get("recurring", ""))
+    ])
 
         st.success("Data uploaded successfully!")
 
