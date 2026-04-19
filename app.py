@@ -118,13 +118,11 @@ if menu == "Dashboard" and not df.empty:
 
         total = cat["amount"].sum()
 
-        # Add %
         cat["percent"] = (cat["amount"] / total) * 100
         cat["label"] = cat.apply(
             lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
         )
 
-        # Bar chart
         fig = px.bar(cat, x="category", y="amount", text="label")
         fig.update_traces(textposition="outside")
         fig.update_layout(height=400, yaxis=dict(visible=False))
@@ -199,7 +197,10 @@ elif menu == "Compare" and not df.empty:
     df1 = df1[df1["category"].str.lower() != "ipo"]
     df2 = df2[df2["category"].str.lower() != "ipo"]
 
-    diff = df1["amount"].sum() - df2["amount"].sum()
+    total1 = df1["amount"].sum()
+    total2 = df2["amount"].sum()
+
+    diff = total1 - total2
 
     st.markdown("### 🔥 Total Difference")
 
@@ -210,14 +211,36 @@ elif menu == "Compare" and not df.empty:
     else:
         st.info("No difference")
 
-    st.markdown("### 📊 Category Comparison")
+    # -----------------------
+    # TOP 10 CATEGORY COMPARE
+    # -----------------------
+    st.markdown("### 📊 Top 10 Category Comparison")
 
-    categories = sorted(set(df1["category"]).union(set(df2["category"])))
-    selected_category = st.selectbox("Select Category", categories)
+    cat1 = df1.groupby("category")["amount"].sum()
+    cat2 = df2.groupby("category")["amount"].sum()
 
-    cat1 = df1[df1["category"] == selected_category]["amount"].sum()
-    cat2 = df2[df2["category"] == selected_category]["amount"].sum()
+    compare = pd.DataFrame({
+        f"{m1}-{y1}": cat1,
+        f"{m2}-{y2}": cat2
+    }).fillna(0)
 
-    c1, c2 = st.columns(2)
-    c1.metric(f"{m1}-{y1}", f"₹{cat1:,.0f}")
-    c2.metric(f"{m2}-{y2}", f"₹{cat2:,.0f}")
+    compare["total"] = compare.sum(axis=1)
+    compare = compare.sort_values(by="total", ascending=False).head(10)
+
+    compare = compare.drop(columns=["total"]).reset_index()
+
+    if not compare.empty:
+        fig = px.bar(
+            compare,
+            x="category",
+            y=compare.columns[1:],
+            barmode="group",
+            text_auto=True
+        )
+
+        fig.update_layout(height=450)
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    else:
+        st.info("No data to compare")
