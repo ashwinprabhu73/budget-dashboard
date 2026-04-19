@@ -3,34 +3,58 @@ import pandas as pd
 import plotly.express as px
 
 # -----------------------
-# PREMIUM UI (NO BEHAVIOR CHANGE)
+# PREMIUM THEME (CADBURY + SALESFORCE)
 # -----------------------
 st.set_page_config(layout="wide")
 
 st.markdown("""
 <style>
+
+/* Background */
 body {
-    background-color: #f8f5f0;
+    background-color: #f4f6f9;
 }
-h1, h2, h3 {
-    font-family: Georgia, serif;
-    color: #2c2c2c;
+
+/* Title */
+h1 {
+    font-family: 'Georgia', serif;
+    color: #2e2a47;
 }
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #3b0a57, #5a189a);
+    color: white;
+}
+
+/* Card (Salesforce style) */
+.card {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+/* Premium header cards */
 .premium-card {
-    background: linear-gradient(135deg, #fdfaf6, #f4efe6);
+    background: linear-gradient(135deg, #ffffff, #f9fafb);
     padding: 18px;
     border-radius: 12px;
-    border: 1px solid #e6dccb;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
 }
+
+/* Value text */
 .big-number {
-    font-size: 26px;
-    font-weight: 600;
-    color: #1f3d2b;
+    font-size: 28px;
+    font-weight: 700;
+    color: #3b0a57;
 }
+
+/* Caption */
 .caption {
     font-size: 13px;
-    color: #7a766f;
+    color: #6b7280;
 }
 
 /* GOLD IPO CARD */
@@ -39,19 +63,32 @@ h1, h2, h3 {
     padding: 20px;
     border-radius: 14px;
     border: 1px solid #e6d38a;
-    box-shadow: 0 6px 18px rgba(180,150,50,0.15);
+    box-shadow: 0 4px 12px rgba(180,150,50,0.15);
 }
 .gold-title {
     font-weight: 700;
     font-size: 16px;
     color: #5a4a1f;
-    margin-bottom: 8px;
 }
 .gold-value {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
     color: #3d3212;
 }
+
+/* Section headers */
+h3 {
+    color: #2e2a47;
+}
+
+/* Divider */
+hr {
+    border: none;
+    height: 1px;
+    background: #e5e7eb;
+    margin: 20px 0;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -87,7 +124,7 @@ def preprocess(df):
     return df.sort_values(["year", "month_num"])
 
 # -----------------------
-# DATA SOURCE
+# DATA SOURCE (UNCHANGED)
 # -----------------------
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
@@ -125,7 +162,7 @@ if menu == "Dashboard" and not df.empty:
     yearly_total = expense_df["amount"].sum()
     monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
-    # Premium Cards (UNCHANGED LOGIC)
+    # Premium Cards
     col1, col2 = st.columns(2)
 
     with col1:
@@ -144,23 +181,23 @@ if menu == "Dashboard" and not df.empty:
         </div>
         """, unsafe_allow_html=True)
 
-    # -----------------------
-    # IPO (GOLD CARD ONLY CHANGE)
-    # -----------------------
-    ipo_month = ipo_df[ipo_df["month"] == selected_month]
+    st.markdown("<hr>", unsafe_allow_html=True)
 
-    ipo_amount = ipo_month['amount'].sum()
-    ipo_count = len(ipo_month)
+    # IPO GOLD CARD
+    ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
     st.markdown(f"""
     <div class="gold-card">
         <div class="gold-title">💼 IPO Summary</div>
-        <div class="gold-value">Amount: ₹{ipo_amount:,.0f}</div>
-        <div class="gold-value">Entries: {ipo_count}</div>
+        <br>
+        <div class="gold-value">Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
+        <div class="gold-value">Entries: {len(ipo_month)}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # CATEGORY (UNCHANGED)
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # CATEGORY
     filtered = expense_df[expense_df["month"] == selected_month]
 
     st.subheader(f"📊 Category Breakdown - {selected_month}")
@@ -175,34 +212,27 @@ if menu == "Dashboard" and not df.empty:
         )
 
         fig = px.bar(cat, x="category", y="amount", text="label")
+
         fig.update_traces(textposition="outside", textfont=dict(size=16))
-        fig.update_layout(yaxis=dict(visible=False))
+
+        fig.update_layout(
+            yaxis=dict(visible=False),
+            plot_bgcolor="#ffffff",
+            paper_bgcolor="#ffffff"
+        )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # OTHERS (UNCHANGED)
+    # OTHERS
     others_data = filtered[filtered["category"].str.lower() == "others"]
 
     if not others_data.empty:
         st.markdown("### 🔍 Others Breakdown")
 
         others_group = others_data.groupby("description")["amount"].sum().reset_index()
-        total_others = others_group["amount"].sum()
 
-        others_group["percent"] = (others_group["amount"] / total_others) * 100
+        fig2 = px.pie(others_group, names="description", values="amount", hole=0.5)
 
-        major = others_group[others_group["percent"] >= 1]
-        minor = others_group[others_group["percent"] < 1]
-
-        misc_total = minor["amount"].sum()
-
-        if misc_total > 0:
-            major = pd.concat([
-                major,
-                pd.DataFrame([{"description": "Miscellaneous", "amount": misc_total}])
-            ])
-
-        fig2 = px.pie(major, names="description", values="amount", hole=0.5)
         st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
