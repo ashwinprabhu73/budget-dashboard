@@ -103,9 +103,7 @@ if menu == "Dashboard" and not df.empty:
     filtered = expense_df[expense_df["month"] == selected_month]
     monthly_total = filtered["amount"].sum()
 
-    st.subheader(
-        f"📊 Category Breakdown - {selected_month} | ₹{monthly_total:,.0f}"
-    )
+    st.subheader(f"📊 Category Breakdown - {selected_month} | ₹{monthly_total:,.0f}")
 
     cat = filtered.groupby("category")["amount"].sum().reset_index()
     cat = cat.sort_values(by="amount", ascending=False)
@@ -119,7 +117,6 @@ if menu == "Dashboard" and not df.empty:
         )
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-
         fig.update_traces(textposition="outside")
         fig.update_layout(height=400, yaxis=dict(visible=False))
 
@@ -132,8 +129,8 @@ if menu == "Dashboard" and not df.empty:
             st.markdown("### 🔍 Others Breakdown")
 
             others_group = others_data.groupby("description")["amount"].sum().reset_index()
-
             total_others = others_group["amount"].sum()
+
             others_group["percent"] = (others_group["amount"] / total_others) * 100
 
             major = others_group[others_group["percent"] >= 1]
@@ -144,19 +141,10 @@ if menu == "Dashboard" and not df.empty:
             if misc_total > 0:
                 major = pd.concat([
                     major,
-                    pd.DataFrame([{
-                        "description": "Miscellaneous",
-                        "amount": misc_total
-                    }])
+                    pd.DataFrame([{"description": "Miscellaneous", "amount": misc_total}])
                 ])
 
-            fig2 = px.pie(
-                major,
-                names="description",
-                values="amount",
-                hole=0.5
-            )
-
+            fig2 = px.pie(major, names="description", values="amount", hole=0.5)
             fig2.update_traces(textinfo="percent+label")
 
             st.plotly_chart(fig2, use_container_width=True)
@@ -196,7 +184,7 @@ elif menu == "Compare" and not df.empty:
     else:
         st.info("No difference")
 
-    # Top 10 Compare
+    # Top 10 compare
     st.markdown("### 📊 Top 10 Category Comparison")
 
     cat1 = df1.groupby("category")["amount"].sum()
@@ -226,8 +214,17 @@ elif menu == "Compare" and not df.empty:
         lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
     )
 
-    fig = px.bar(
-        melted,
+    # -----------------------
+    # SPLIT INTO 5 + 5
+    # -----------------------
+    first5 = melted.head(10).iloc[:5]
+    next5 = melted.head(10).iloc[5:10]
+
+    # Chart 1
+    st.markdown("### 📊 Top 5 Categories")
+
+    fig1 = px.bar(
+        first5,
         x="category",
         y="amount",
         color="Month",
@@ -235,13 +232,25 @@ elif menu == "Compare" and not df.empty:
         text="label"
     )
 
-    fig.update_traces(textposition="outside")
+    fig1.update_traces(textposition="outside")
+    fig1.update_layout(height=450, yaxis=dict(visible=False))
 
-    # 🔥 CLEAN LOOK FIX
-    fig.update_layout(
-        height=500,
-        yaxis=dict(visible=False),
-        xaxis_title=""
-    )
+    st.plotly_chart(fig1, use_container_width=True)
 
-    st.plotly_chart(fig, use_container_width=True)
+    # Chart 2
+    if not next5.empty:
+        st.markdown("### 📊 Next 5 Categories")
+
+        fig2 = px.bar(
+            next5,
+            x="category",
+            y="amount",
+            color="Month",
+            barmode="group",
+            text="label"
+        )
+
+        fig2.update_traces(textposition="outside")
+        fig2.update_layout(height=450, yaxis=dict(visible=False))
+
+        st.plotly_chart(fig2, use_container_width=True)
