@@ -8,54 +8,21 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # -----------------------
-# UI (CAR BLACK + GOLD + SEGMENT NAV)
+# UI (SAFE DARK THEME ONLY)
 # -----------------------
 st.markdown("""
 <style>
-
-/* BACKGROUND */
 body {
     background: radial-gradient(circle at top left, #1b1b1f, #0a0a0c 60%);
     color: #ffffff;
 }
+h1 { color: #f5f5f5; }
 
-/* TITLE */
-h1 {
-    color: #f5f5f5;
-    font-weight: 600;
-}
-
-/* SIDEBAR */
 section[data-testid="stSidebar"] {
     background: #000000;
     color: #cfcfcf;
 }
 
-/* SEGMENTED CONTROL */
-.segment-wrapper {
-    display: flex;
-    border-radius: 14px;
-    overflow: hidden;
-    border: 1px solid #2a2a2e;
-    background: #111114;
-    margin-bottom: 15px;
-}
-
-.segment {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    font-size: 14px;
-    color: #aaa;
-}
-
-.segment-active {
-    background: linear-gradient(90deg, #d4af37, #f5d77a);
-    color: black;
-    font-weight: 600;
-}
-
-/* CARDS */
 .premium-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
@@ -63,7 +30,6 @@ section[data-testid="stSidebar"] {
     border: 1px solid #2a2a2e;
 }
 
-/* TEXT */
 .caption {
     font-size: 12px;
     color: #9ca3af;
@@ -77,7 +43,6 @@ section[data-testid="stSidebar"] {
     -webkit-text-fill-color: transparent;
 }
 
-/* IPO */
 .gold-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
@@ -95,47 +60,24 @@ section[data-testid="stSidebar"] {
     background: linear-gradient(90deg, #d4af37, #f5d77a);
 }
 
-.gold-title {
-    color: #d4af37;
-}
+.gold-title { color: #d4af37; }
+.gold-value { font-size: 18px; }
 
-.gold-value {
-    font-size: 18px;
-}
-
-/* DIVIDER */
 hr {
     border: none;
     height: 1px;
     background: #2a2a2e;
     margin: 25px 0;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
 st.title("💰 Smart Budget Dashboard")
 
 # -----------------------
-# SESSION STATE (IMPORTANT)
+# NAVIGATION (ORIGINAL)
 # -----------------------
-if "menu" not in st.session_state:
-    st.session_state.menu = "Dashboard"
-
-# -----------------------
-# SIDEBAR NAV (SEGMENTED LOOK)
-# -----------------------
-st.sidebar.markdown("### Navigation")
-
-col1, col2 = st.sidebar.columns(2)
-
-if col1.button("📊 Dashboard", use_container_width=True):
-    st.session_state.menu = "Dashboard"
-
-if col2.button("⚖️ Compare", use_container_width=True):
-    st.session_state.menu = "Compare"
-
-menu = st.session_state.menu
+menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 
 # -----------------------
 # HELPERS
