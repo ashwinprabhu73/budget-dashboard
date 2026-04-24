@@ -169,12 +169,12 @@ if menu == "Dashboard" and not df.empty:
 
 <div style="min-width:200px;">
 <div class="gold value">Applied</div>
-<div>{total_entries}</div>
+<div class="white value">{total_entries}</div>
 </div>
 
 <div style="min-width:200px;">
 <div class="gold value">Allotment</div>
-<div>{total_allot}</div>
+<div class="white value">{total_allot}</div>
 </div>
 
 </div>
