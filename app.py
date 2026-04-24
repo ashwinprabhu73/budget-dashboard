@@ -160,21 +160,8 @@ st.markdown(
 
     </div>
     """,
-    unsafe_allow_html=True   
+    unsafe_allow_html=True   # ✅ THIS IS THE KEY
 )
-
-    # =========================
-    # MONTHLY
-    # =========================
-    mdf = expense_df[expense_df["month"] == month]
-    monthly_total = mdf["amount"].sum()
-
-    st.markdown(f"""
-    <div class="block">
-    <div class="label">{month} Monthly Spend</div>
-    <div class="gold value">₹{monthly_total:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
 
     # =========================
     # INVESTMENT + SPEND LOGIC
