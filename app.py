@@ -20,31 +20,55 @@ section[data-testid="stSidebar"] {
     color: #ffffff;
 }
 
+/* CARDS */
 .premium-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
-    padding: 22px;
+    padding: 24px;
     border: 1px solid #2a2a2e;
 }
 
-.caption {
-    font-size: 12px;
-    color: #9ca3af;
+/* TITLES */
+.card-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #e5e7eb;
 }
 
+.person-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+/* LABELS */
+.caption {
+    font-size: 15px;
+    color: #9ca3af;
+    margin-top: 8px;
+}
+
+/* NUMBERS */
 .big-number {
-    font-size: 28px;
+    font-size: 34px;
     font-weight: 700;
     background: linear-gradient(90deg, #d4af37, #f5d77a);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-.gold-card {
-    background: linear-gradient(145deg, #1a1a1d, #111114);
-    border-radius: 16px;
-    padding: 22px;
-    border: 1px solid #2a2a2e;
+.value-number {
+    font-size: 28px;
+    font-weight: 600;
+    background: linear-gradient(90deg, #d4af37, #f5d77a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* SPACING */
+.section-gap {
+    margin-top: 30px;
 }
 
 hr {
@@ -130,7 +154,7 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown(f"""
     <div class="premium-card">
-        <div class="caption">Total Yearly Spend</div>
+        <div class="card-title">Total Yearly Spend</div>
         <div class="big-number">₹{yearly_total:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -143,12 +167,14 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown(f"""
     <div class="premium-card">
-        <div class="caption">{selected_month} Monthly Spend</div>
+        <div class="card-title">{selected_month} Monthly Spend</div>
         <div class="big-number">₹{monthly_total:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # Paid By + In Hand + Savings
+    st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
+
+    # Paid By
     ashwin_spend, harshita_spend = 0, 0
 
     if "paid_by" in monthly_df.columns:
@@ -173,26 +199,26 @@ if menu == "Dashboard" and not df.empty:
     with col1:
         st.markdown(f"""
         <div class="premium-card">
-            <div class="caption">Ashwin</div>
+            <div class="person-title">Ashwin</div>
             <div class="caption">In Hand</div>
             <div class="big-number">₹{ashwin_inhand:,.0f}</div>
             <div class="caption">Spent</div>
-            <div>₹{ashwin_spend:,.0f}</div>
+            <div class="value-number">₹{ashwin_spend:,.0f}</div>
             <div class="caption">Savings</div>
-            <div>₹{ashwin_savings:,.0f}</div>
+            <div class="value-number">₹{ashwin_savings:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"""
         <div class="premium-card">
-            <div class="caption">Harshita</div>
+            <div class="person-title">Harshita</div>
             <div class="caption">In Hand</div>
             <div class="big-number">₹{harshita_inhand:,.0f}</div>
             <div class="caption">Spent</div>
-            <div>₹{harshita_spend:,.0f}</div>
+            <div class="value-number">₹{harshita_spend:,.0f}</div>
             <div class="caption">Savings</div>
-            <div>₹{harshita_savings:,.0f}</div>
+            <div class="value-number">₹{harshita_savings:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -201,8 +227,8 @@ if menu == "Dashboard" and not df.empty:
     # IPO
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
     st.markdown(f"""
-    <div class="gold-card">
-        <div class="caption">IPO SUMMARY</div>
+    <div class="premium-card">
+        <div class="card-title">IPO SUMMARY</div>
         <div>Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
         <div>Entries: {len(ipo_month)}</div>
     </div>
@@ -210,7 +236,7 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # Category chart
+    # CATEGORY BAR
     cat = monthly_df.groupby("category")["amount"].sum().reset_index()
     if not cat.empty:
         total = cat["amount"].sum()
@@ -218,11 +244,11 @@ if menu == "Dashboard" and not df.empty:
         cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1)
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-        fig.update_traces(textposition="outside")
+        fig.update_traces(textposition="outside", textfont=dict(size=14))
         fig.update_layout(plot_bgcolor="#0a0a0c", paper_bgcolor="#0a0a0c", font=dict(color="white"))
         st.plotly_chart(fig, use_container_width=True)
 
-    # Others donut
+    # OTHERS DONUT
     others_data = monthly_df[monthly_df["category"].str.lower() == "others"]
     if not others_data.empty:
         others_group = others_data.groupby("description")["amount"].sum().reset_index()
@@ -231,7 +257,7 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
-# COMPARE (RESTORED)
+# COMPARE
 # =======================
 elif menu == "Compare" and not df.empty:
 
