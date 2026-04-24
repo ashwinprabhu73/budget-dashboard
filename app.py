@@ -6,36 +6,31 @@ import plotly.graph_objects as go
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 GLOBAL STYLES (UNCHANGED)
+# 🎨 GLOBAL STYLES
 # =========================
 st.markdown("""
 <style>
 html, body, [data-testid="stAppViewContainer"] {
     background-color: #0b0f14;
 }
-
 [data-testid="stSidebar"] {
     background: #0a0f1a;
 }
-
 h1 {
     color: #e5e7eb !important;
     font-size: 42px !important;
     font-weight: 700;
 }
-
 label {
     color: #e5e7eb !important;
     font-size: 18px !important;
 }
-
 div[data-baseweb="select"] > div {
     background-color: #111827 !important;
     color: #9ca3af !important;
     border-radius: 10px !important;
     border: 1px solid #1f2937 !important;
 }
-
 .block {
     background: #111827;
     padding: 18px;
@@ -43,13 +38,10 @@ div[data-baseweb="select"] > div {
     border: 1px solid #1f2937;
     margin-bottom: 15px;
 }
-
 .gold { color: #d4af37; font-weight: bold; }
 .value { font-size: 26px; }
-
 .green { color: #22c55e; font-weight: bold; }
 .red { color: #ef4444; font-weight: bold; }
-
 .label { color: #9ca3af; font-size: 14px; }
 </style>
 """, unsafe_allow_html=True)
@@ -62,9 +54,7 @@ menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 # HELPERS
 # =========================
 def extract_sheet_id(url):
-    if "docs.google.com" in url:
-        return url.split("/d/")[1].split("/")[0]
-    return url
+    return url.split("/d/")[1].split("/")[0] if "docs.google.com" in url else url
 
 def load_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -139,21 +129,21 @@ if menu == "Dashboard" and not df.empty:
 """, unsafe_allow_html=True)
 
     # =========================
-    # INVESTMENT + SPEND LOGIC (NEW)
+    # INVESTMENT + SPEND LOGIC
     # =========================
     a_spend, h_spend = 0, 0
     a_inv_rec, h_inv_rec = 0, 0
     a_inv_lump, h_inv_lump = 0, 0
 
     for _, r in mdf.iterrows():
-        p = str(r.get("paid_by", "")).lower()
-        cat = str(r.get("category", "")).lower()
-        rec_flag = str(r.get("recurring expense", "")).lower()
+        p = str(r.get("paid_by", "")).strip().lower()
+        cat = str(r.get("category", "")).strip().lower()
+        rec_flag = str(r.get("recurring expense", "")).strip().lower()
 
         amt = r["amount"]
 
         if cat == "investment":
-            is_rec = rec_flag in ["yes", "true", "1"]
+            is_rec = rec_flag == "recurring"
 
             if is_rec:
                 if p == "ashwin":
@@ -225,7 +215,7 @@ if menu == "Dashboard" and not df.empty:
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
 
     # =========================
-    # IPO (UNCHANGED)
+    # IPO
     # =========================
     ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
@@ -236,6 +226,49 @@ if menu == "Dashboard" and not df.empty:
 <div>Entries: {len(ipo)}</div>
 </div>
 """, unsafe_allow_html=True)
+
+    # =========================
+    # EXPENSE BREAKDOWN
+    # =========================
+    st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
+
+    cat = mdf.groupby("category")["amount"].sum().reset_index()
+
+    if not cat.empty:
+        fig = px.bar(cat, x="category", y="amount", text="amount")
+        fig.update_traces(marker_color="#d4af37", textfont_color="white")
+        fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =========================
+    # OTHER EXPENSES
+    # =========================
+    others = mdf[mdf["category"].str.lower() == "others"]
+
+    if not others.empty:
+        st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
+
+        grp = others.groupby("description")["amount"].sum().reset_index()
+        grp = grp.sort_values(by="amount", ascending=False)
+
+        col1, col2 = st.columns([3,1])
+        colors = px.colors.qualitative.Plotly[:len(grp)]
+
+        with col1:
+            fig = go.Figure(data=[go.Pie(
+                labels=grp["description"],
+                values=grp["amount"],
+                hole=0.65,
+                marker=dict(colors=colors)
+            )])
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            for i, r in enumerate(grp.itertuples()):
+                st.markdown(
+                    f"<span style='color:{colors[i]}'>● {r.description} — ₹{r.amount:,.0f}</span>",
+                    unsafe_allow_html=True
+                )
 
 # =========================
 # COMPARE (UNCHANGED)
