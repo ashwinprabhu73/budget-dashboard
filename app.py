@@ -6,27 +6,18 @@ import plotly.graph_objects as go
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 DARK THEME (MATCH UI)
+# 🎨 DARK UI
 # =========================
 st.markdown("""
 <style>
-
-/* BACKGROUND */
 html, body, [data-testid="stAppViewContainer"] {
     background-color: #0b0f14;
 }
 
-/* SIDEBAR */
 [data-testid="stSidebar"] {
     background: #0a0f1a;
 }
 
-/* HEADINGS */
-h1, h2, h3 {
-    color: #ffffff;
-}
-
-/* CARD STYLE */
 .block {
     background: #111827;
     padding: 18px;
@@ -35,21 +26,13 @@ h1, h2, h3 {
     margin-bottom: 15px;
 }
 
-/* GOLD TEXT */
-.gold {
-    color: #d4af37;
-    font-weight: bold;
-}
+.gold { color: #d4af37; font-weight: bold; }
+.value { font-size: 26px; }
 
-/* VALUE */
-.value {
-    font-size: 28px;
-}
-
-/* GREEN / RED */
 .green { color: #22c55e; font-weight: bold; }
 .red { color: #ef4444; font-weight: bold; }
 
+.label { color: #9ca3af; font-size: 14px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -58,7 +41,7 @@ st.title("Smart Budget Dashboard")
 menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 
 # =========================
-# HELPERS (UNCHANGED)
+# HELPERS
 # =========================
 def extract_sheet_id(url):
     if "docs.google.com" in url:
@@ -116,7 +99,7 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown(f"""
     <div class="block">
-        <div>Total Yearly Spend</div>
+        <div class="label">Total Yearly Spend</div>
         <div class="gold value">₹{total_year:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -128,13 +111,13 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown(f"""
     <div class="block">
-        <div>{month} Monthly Spend</div>
+        <div class="label">{month} Monthly Spend</div>
         <div class="gold value">₹{monthly_total:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
 
     # =========================
-    # PAID BY (UNCHANGED)
+    # PAID BY
     # =========================
     a_spend, h_spend = 0, 0
 
@@ -170,25 +153,39 @@ if menu == "Dashboard" and not df.empty:
 
     col1, col2 = st.columns(2)
 
+    # =========================
+    # ✅ FIXED CARD (FULL GROUP)
+    # =========================
     def render_person(name, income, spend, save, col):
         with col:
-            st.markdown(f"<div class='block'><div class='gold'>{name}</div>", unsafe_allow_html=True)
 
-            st.write("In Hand")
-            st.markdown(f"<div class='gold value'>₹{income:,.0f}</div>", unsafe_allow_html=True)
+            html = f"""
+            <div class="block">
+                <div class="gold" style="font-size:22px; margin-bottom:10px;">{name}</div>
 
-            st.write("Spent")
-            st.markdown(f"<div class='gold value'>₹{spend:,.0f}</div>", unsafe_allow_html=True)
+                <div class="label">In Hand</div>
+                <div class="gold value">₹{income:,.0f}</div>
 
-            st.write("Savings")
+                <div class="label" style="margin-top:10px;">Spent</div>
+                <div class="gold value">₹{spend:,.0f}</div>
+
+                <div class="label" style="margin-top:10px;">Savings</div>
+            """
+
             if save >= 0:
-                st.markdown(f"<div class='green value'>₹{save:,.0f}</div>", unsafe_allow_html=True)
-                st.markdown("<div class='green'>✔ Great! You're saving well.</div>", unsafe_allow_html=True)
+                html += f"""
+                    <div class="green value">₹{save:,.0f}</div>
+                    <div class="green">✔ Great! You're saving well.</div>
+                """
             else:
-                st.markdown(f"<div class='red value'>-₹{abs(save):,.0f}</div>", unsafe_allow_html=True)
-                st.markdown("<div class='red'>⚠ You've overspent this month.</div>", unsafe_allow_html=True)
+                html += f"""
+                    <div class="red value">-₹{abs(save):,.0f}</div>
+                    <div class="red">⚠ You've overspent this month.</div>
+                """
 
-            st.markdown("</div>", unsafe_allow_html=True)
+            html += "</div>"
+
+            st.markdown(html, unsafe_allow_html=True)
 
     render_person("Ashwin", a_in, a_spend, a_save, col1)
     render_person("Harshita", h_in, h_spend, h_save, col2)
@@ -216,42 +213,38 @@ if menu == "Dashboard" and not df.empty:
         cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)", axis=1)
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-
         fig.update_layout(
             plot_bgcolor="#0b0f14",
             paper_bgcolor="#0b0f14",
             font=dict(color="white")
         )
-
         fig.update_traces(marker_color="#d4af37")
 
         st.plotly_chart(fig, use_container_width=True)
 
     # =========================
-    # DONUT (MATCH STYLE)
+    # DONUT
     # =========================
     others = mdf[mdf["category"].str.lower() == "others"]
 
     if not others.empty:
         grp = others.groupby("description")["amount"].sum().reset_index()
 
-        col1, col2 = st.columns([2,1])
+        c1, c2 = st.columns([2,1])
 
-        with col1:
+        with c1:
             fig = go.Figure(data=[go.Pie(
                 labels=grp["description"],
                 values=grp["amount"],
                 hole=0.65
             )])
-
             fig.update_layout(
                 paper_bgcolor="#0b0f14",
                 font=dict(color="white")
             )
-
             st.plotly_chart(fig, use_container_width=True)
 
-        with col2:
+        with c2:
             for _, r in grp.iterrows():
                 st.write(f"● {r['description']} — ₹{r['amount']:,.0f}")
 
