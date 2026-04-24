@@ -44,7 +44,7 @@ div[data-baseweb="select"] > div {
 .red { color: #ef4444; font-weight: bold; }
 .white { color: #ffffff; font-weight: bold; }
 .label { color: #9ca3af; font-size: 14px; }
-.grey { color: #9ca3af; }
+.grey { color: #9ca3af; font-weight: bold;}
 .grey-light { color: #d1d5db; }
 .grey-dark { color: #6b7280; }
 </style>
