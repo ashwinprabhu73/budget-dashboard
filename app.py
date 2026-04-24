@@ -10,14 +10,45 @@ st.set_page_config(layout="wide")
 # =========================
 st.markdown("""
 <style>
+
+/* Background */
 html, body, [data-testid="stAppViewContainer"] {
     background-color: #0b0f14;
 }
 
+/* Sidebar */
 [data-testid="stSidebar"] {
     background: #0a0f1a;
 }
 
+/* Title */
+h1 {
+    color: #e5e7eb !important;
+    font-size: 42px !important;
+    font-weight: 700;
+}
+
+/* Labels (Select Year / Month) */
+label {
+    color: #e5e7eb !important;
+    font-size: 18px !important;
+    font-weight: 500;
+}
+
+/* Dropdown styling */
+div[data-baseweb="select"] > div {
+    background-color: #111827 !important;
+    color: #9ca3af !important;
+    border-radius: 10px !important;
+    border: 1px solid #1f2937 !important;
+}
+
+/* Dropdown text */
+div[data-baseweb="select"] span {
+    color: #9ca3af !important;
+}
+
+/* Cards */
 .block {
     background: #111827;
     padding: 18px;
@@ -26,6 +57,7 @@ html, body, [data-testid="stAppViewContainer"] {
     margin-bottom: 15px;
 }
 
+/* Colors */
 .gold { color: #d4af37; font-weight: bold; }
 .value { font-size: 26px; }
 
@@ -33,6 +65,7 @@ html, body, [data-testid="stAppViewContainer"] {
 .red { color: #ef4444; font-weight: bold; }
 
 .label { color: #9ca3af; font-size: 14px; }
+
 </style>
 """, unsafe_allow_html=True)
 
