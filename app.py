@@ -111,58 +111,57 @@ if menu == "Dashboard" and not df.empty:
 
     total_year = expense_df["amount"].sum()
 
-    # ===== YEARLY + IPO SIDE BY SIDE =====
+    # ===== YEARLY =====
     col_y1, col_y2 = st.columns([1,1])
 
-    # Yearly Spend
     with col_y1:
-      st.markdown(f"""
-      <div class="block">
-      <div class="gold">TOTAL YEARLY SPEND</div>
-      <div class="label">Amount</div>
-      <div class="gold value">₹{total_year:,.0f}</div>
-      </div>
-      """, unsafe_allow_html=True)
-
-# =========================
-# IPO SUMMARY (FULL WIDTH)
-# =========================
-ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
-
-st.markdown(f"""
-<div class="block">
-
-    <div class="gold">YEARLY IPO SUMMARY</div>
-
-    <div style="display:flex; justify-content:space-between; margin-top:15px;">
-        <div>
-            <div class="label">Total Amount Utilised</div>
-            <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+        st.markdown(f"""
+        <div class="block">
+        <div class="gold">TOTAL YEARLY SPEND</div>
+        <div class="label">Amount</div>
+        <div class="gold value">₹{total_year:,.0f}</div>
         </div>
-
-        <div>
-            <div class="label">Allotment Profit</div>
-            <div class="gold value">₹0</div>
-        </div>
-    </div>
-
-    <div style="display:flex; justify-content:space-between; margin-top:20px;">
-        <div>
-            <div class="label">Applied</div>
-            <div class="gold value">{len(ipo_year)}</div>
-        </div>
-
-        <div>
-            <div class="label">Allotted</div>
-            <div class="gold value">0</div>
-        </div>
-    </div>
-
-</div>
-""", unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
     # =========================
-    # MONTHLY (NOW FULL WIDTH ✅)
+    # IPO SUMMARY (FULL WIDTH)
+    # =========================
+    ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+
+    st.markdown(f"""
+    <div class="block">
+
+        <div class="gold">YEARLY IPO SUMMARY</div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:15px;">
+            <div>
+                <div class="label">Total Amount Utilised</div>
+                <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotment Profit</div>
+                <div class="gold value">₹0</div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <div>
+                <div class="label">Applied</div>
+                <div class="gold value">{len(ipo_year)}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotted</div>
+                <div class="gold value">0</div>
+            </div>
+        </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
+    # =========================
+    # MONTHLY
     # =========================
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
@@ -238,7 +237,7 @@ st.markdown(f"""
     h_save = h_in - h_inv_rec - h_spend
 
     # =========================
-    # PERSON CARDS (UNCHANGED)
+    # PERSON CARDS
     # =========================
     col1, col2 = st.columns(2)
 
