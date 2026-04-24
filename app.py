@@ -145,29 +145,37 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown(f"""
 <div class="block">
-<div class="label">IPO SUMMARY - {year}</div>
-<div style="display:flex; justify-content:space-between;">
-    <div>
+
+<div class="gold">IPO SUMMARY ({year})</div>
+
+<div style="display:flex; justify-content:center; gap:120px;">
+
+    <div style="min-width:200px;">
         <div>Amount</div>
         <div class="gold value">₹{total_amt:,.0f}</div>
     </div>
-    <div>
+
+    <div style="min-width:200px;">
         <div>Allotment Profit</div>
         <div class="green value">₹{total_profit:,.0f}</div>
     </div>
+
 </div>
 
 <br>
 
-<div style="display:flex; justify-content:space-between;">
-    <div>
+<div style="display:flex; justify-content:center; gap:120px;">
+
+    <div style="min-width:200px;">
         <div>Entries</div>
         <div>{total_entries}</div>
     </div>
-    <div>
+
+    <div style="min-width:200px;">
         <div>Allotment</div>
         <div>{total_allot}</div>
     </div>
+
 </div>
 
 </div>
