@@ -339,7 +339,7 @@ with col_y2:
 # =========================
 # COMPARE (UNCHANGED)
 # =========================
-elif menu == "Compare" and not df.empty:
+if menu == "Compare" and not df.empty:
 
     years = sorted(df["year"].unique())
     latest = len(years)-1
