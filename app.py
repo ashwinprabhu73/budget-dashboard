@@ -214,19 +214,23 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
     # =========================
-# ✅ OTHERS (UPDATED)
+# ✅ OTHERS (FINAL FIX)
 # =========================
 others = mdf[mdf["category"].str.lower() == "others"]
 
 if not others.empty:
 
-    # ✅ Header with dark blue color
     st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
 
+    # ✅ SORT DESCENDING
     grp = others.groupby("description")["amount"].sum().reset_index()
+    grp = grp.sort_values(by="amount", ascending=False)
+
     total_other = grp["amount"].sum()
 
-    # ✅ 75 : 25 layout
+    # ✅ COLOR PALETTE (FIXED ORDER)
+    colors = px.colors.qualitative.Set3[:len(grp)]
+
     col1, col2 = st.columns([3, 1])
 
     with col1:
@@ -234,10 +238,10 @@ if not others.empty:
             labels=grp["description"],
             values=grp["amount"],
             hole=0.65,
-            textinfo='percent'
+            textinfo='percent',
+            marker=dict(colors=colors)  # ✅ MATCH COLORS
         )])
 
-        # ✅ Center total
         fig.add_annotation(
             text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
             x=0.5, y=0.5,
@@ -254,11 +258,11 @@ if not others.empty:
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        colors = px.colors.qualitative.Set3
-
         for i, r in grp.iterrows():
+            color = colors[i]
+
             st.markdown(
-                f"<span style='color:{colors[i % len(colors)]}'>● {r['description']} — ₹{r['amount']:,.0f}</span>",
+                f"<span style='color:{color}'>● {r['description']} — ₹{r['amount']:,.0f}</span>",
                 unsafe_allow_html=True
             )
 # =========================
