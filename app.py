@@ -128,8 +128,8 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown(f"""
 <div class="block">
-<div class="gold">IPO SUMMARY</div>
-<div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
+<div class="label">IPO SUMMARY - {year}</div>
+<div class ="gold value">Amount: ₹{ipo['amount'].sum():,.0f}</div>
 <div>Entries: {len(ipo)}</div>
 </div>
 """, unsafe_allow_html=True)
