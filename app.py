@@ -126,18 +126,50 @@ if menu == "Dashboard" and not df.empty:
     # =========================
     ipo = year_df[year_df["category"].str.lower() == "ipo"]
 
-    st.markdown(f"""
-<div class="block">
-<div class="label">IPO SUMMARY - {year}</div>
-<div class ="gold value">Amount: ₹{ipo['amount'].sum():,.0f}</div>
-<div class ="gold value">Entries: {len(ipo)}</div>
-</div>
-""", unsafe_allow_html=True)
+    # Safe column detection
+    profit_col = None
+    allot_col = None
+
+    for c in ipo.columns:
+        if "profit" in c.lower():
+            profit_col = c
+        if "allot" in c.lower():
+            allot_col = c
+
+    # Calculations
+    total_amt = ipo["amount"].sum()
+    total_entries = len(ipo)
+
+    total_profit = ipo[profit_col].sum() if profit_col else 0
+    total_allot = ipo[allot_col].sum() if allot_col else 0
 
     st.markdown(f"""
 <div class="block">
-<div class="label">{month} Monthly Spend</div>
-<div class="gold value">₹{monthly_total:,.0f}</div>
+<div class="label">IPO SUMMARY - {year}</div>
+<div style="display:flex; justify-content:space-between;">
+    <div>
+        <div>Amount</div>
+        <div class="gold value">₹{total_amt:,.0f}</div>
+    </div>
+    <div>
+        <div>Allotment Profit</div>
+        <div class="green value">₹{total_profit:,.0f}</div>
+    </div>
+</div>
+
+<br>
+
+<div style="display:flex; justify-content:space-between;">
+    <div>
+        <div>Entries</div>
+        <div>{total_entries}</div>
+    </div>
+    <div>
+        <div>Allotment</div>
+        <div>{total_allot}</div>
+    </div>
+</div>
+
 </div>
 """, unsafe_allow_html=True)
 
