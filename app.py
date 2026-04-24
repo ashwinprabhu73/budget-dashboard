@@ -24,7 +24,7 @@ section[data-testid="stSidebar"] {
     color: #ffffff;
 }
 
-/* 🔥 SIDEBAR RADIO IMPROVEMENT */
+/* SIDEBAR RADIO IMPROVEMENT */
 section[data-testid="stSidebar"] label {
     font-size: 18px !important;
     color: #f5f5f5 !important;
@@ -107,7 +107,7 @@ hr {
 st.title("💰 Smart Budget Dashboard")
 
 # -----------------------
-# NAVIGATION (UNCHANGED)
+# NAVIGATION
 # -----------------------
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 
@@ -169,15 +169,13 @@ if menu == "Dashboard" and not df.empty:
     selected_year = st.selectbox("Select Year", years, index=len(years)-1)
 
     year_df = df[df["year"] == selected_year]
-    months = year_df.sort_values("month_num")["month"].unique()
-    selected_month = st.selectbox("Select Month", months, index=len(months)-1)
 
     ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
     yearly_total = expense_df["amount"].sum()
-    monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
+    # ✅ YEARLY FIRST
     col1, col2 = st.columns(2)
 
     with col1:
@@ -187,6 +185,12 @@ if menu == "Dashboard" and not df.empty:
             <div class="big-number">₹{yearly_total:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
+
+    # Month dropdown AFTER yearly
+    months = year_df.sort_values("month_num")["month"].unique()
+    selected_month = st.selectbox("Select Month", months, index=len(months)-1)
+
+    monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
 
     with col2:
         st.markdown(f"""
