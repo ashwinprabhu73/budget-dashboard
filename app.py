@@ -98,11 +98,11 @@ if menu == "Dashboard" and not df.empty:
     total_year = expense_df["amount"].sum()
 
     st.markdown(f"""
-    <div class="block">
-        <div class="label">Total Yearly Spend</div>
-        <div class="gold value">₹{total_year:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
+<div class="block">
+<div class="label">Total Yearly Spend</div>
+<div class="gold value">₹{total_year:,.0f}</div>
+</div>
+""", unsafe_allow_html=True)
 
     month = st.selectbox("Select Month", year_df.sort_values("month_num")["month"].unique())
 
@@ -110,11 +110,11 @@ if menu == "Dashboard" and not df.empty:
     monthly_total = mdf["amount"].sum()
 
     st.markdown(f"""
-    <div class="block">
-        <div class="label">{month} Monthly Spend</div>
-        <div class="gold value">₹{monthly_total:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
+<div class="block">
+<div class="label">{month} Monthly Spend</div>
+<div class="gold value">₹{monthly_total:,.0f}</div>
+</div>
+""", unsafe_allow_html=True)
 
     # =========================
     # PAID BY
@@ -154,34 +154,30 @@ if menu == "Dashboard" and not df.empty:
     col1, col2 = st.columns(2)
 
     # =========================
-    # ✅ FIXED CARD (FULL GROUP)
+    # ✅ FIXED CARD
     # =========================
     def render_person(name, income, spend, save, col):
         with col:
 
-            html = f"""
-            <div class="block">
-                <div class="gold" style="font-size:22px; margin-bottom:10px;">{name}</div>
+            html = f"""<div class="block">
+<div class="gold" style="font-size:22px; margin-bottom:10px;">{name}</div>
 
-                <div class="label">In Hand</div>
-                <div class="gold value">₹{income:,.0f}</div>
+<div class="label">In Hand</div>
+<div class="gold value">₹{income:,.0f}</div>
 
-                <div class="label" style="margin-top:10px;">Spent</div>
-                <div class="gold value">₹{spend:,.0f}</div>
+<div class="label" style="margin-top:10px;">Spent</div>
+<div class="gold value">₹{spend:,.0f}</div>
 
-                <div class="label" style="margin-top:10px;">Savings</div>
-            """
+<div class="label" style="margin-top:10px;">Savings</div>"""
 
             if save >= 0:
                 html += f"""
-                    <div class="green value">₹{save:,.0f}</div>
-                    <div class="green">✔ Great! You're saving well.</div>
-                """
+<div class="green value">₹{save:,.0f}</div>
+<div class="green">✔ Great! You're saving well.</div>"""
             else:
                 html += f"""
-                    <div class="red value">-₹{abs(save):,.0f}</div>
-                    <div class="red">⚠ You've overspent this month.</div>
-                """
+<div class="red value">-₹{abs(save):,.0f}</div>
+<div class="red">⚠ You've overspent this month.</div>"""
 
             html += "</div>"
 
@@ -196,12 +192,12 @@ if menu == "Dashboard" and not df.empty:
     ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
     st.markdown(f"""
-    <div class="block">
-        <div class="gold">IPO SUMMARY</div>
-        <div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
-        <div>Entries: {len(ipo)}</div>
-    </div>
-    """, unsafe_allow_html=True)
+<div class="block">
+<div class="gold">IPO SUMMARY</div>
+<div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
+<div>Entries: {len(ipo)}</div>
+</div>
+""", unsafe_allow_html=True)
 
     # =========================
     # BAR CHART
@@ -249,7 +245,7 @@ if menu == "Dashboard" and not df.empty:
                 st.write(f"● {r['description']} — ₹{r['amount']:,.0f}")
 
 # =========================
-# COMPARE (UNCHANGED)
+# COMPARE
 # =========================
 elif menu == "Compare" and not df.empty:
 
