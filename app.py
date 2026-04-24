@@ -321,8 +321,8 @@ if menu == "Dashboard" and not df.empty:
     )
 
     fig.update_traces(
-        texttemplate='₹%{text:,.0f}',
-        textposition='inside'
+    texttemplate='₹%{text:,.0f}',
+    textposition='outside'
     )
 
     fig.for_each_trace(lambda t: t.update(
