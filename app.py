@@ -6,57 +6,22 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 UI STYLE (UNCHANGED)
+# 🎨 LIGHT CSS ONLY (SAFE)
 # =========================
 st.markdown("""
 <style>
-body { background: #0b0f14; color: white; }
-
-section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0a0f1a, #0b0f14);
-    border-right: 1px solid #1f2937;
-}
-
-.card {
-    background: #0f172a;
-    border: 1px solid #1f2937;
-    border-radius: 12px;
-    padding: 18px;
-    margin-bottom: 12px;
-}
-
-.label { color: #9ca3af; font-size: 14px; }
-
-.value-gold {
+.big-number {
     color: #d4af37;
-    font-size: 30px;
-    font-weight: 700;
+    font-size: 28px;
+    font-weight: bold;
 }
-
-.person {
+.person-title {
     color: #d4af37;
-    font-size: 22px;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: bold;
 }
-
-.value {
-    color: #d4af37;
-    font-size: 22px;
-    font-weight: 600;
-}
-
-.green { color: #22c55e; font-size: 22px; font-weight: 600; }
-.red { color: #ef4444; font-size: 22px; font-weight: 600; }
-
-.note-green { color: #22c55e; font-size: 13px; }
-.note-red { color: #ef4444; font-size: 13px; }
-
-hr {
-    border: none;
-    height: 1px;
-    background: #1f2937;
-    margin: 10px 0;
-}
+.green { color: #22c55e; font-weight: bold; }
+.red { color: #ef4444; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -123,26 +88,20 @@ if menu == "Dashboard" and not df.empty:
 
     total_year = expense_df["amount"].sum()
 
-    st.markdown(f"""
-    <div class="card">
-        <div class="label">Total Yearly Spend</div>
-        <div class="value-gold">₹{total_year:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.subheader("Total Yearly Spend")
+    st.markdown(f"<div class='big-number'>₹{total_year:,.0f}</div>", unsafe_allow_html=True)
 
     month = st.selectbox("Select Month", year_df.sort_values("month_num")["month"].unique())
 
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
 
-    st.markdown(f"""
-    <div class="card">
-        <div class="label">{month} Monthly Spend</div>
-        <div class="value-gold">₹{monthly_total:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.subheader(f"{month} Monthly Spend")
+    st.markdown(f"<div class='big-number'>₹{monthly_total:,.0f}</div>", unsafe_allow_html=True)
 
-    # Paid by logic (UNCHANGED)
+    # =========================
+    # PAID BY
+    # =========================
     a_spend, h_spend = 0, 0
 
     for _, r in mdf.iterrows():
@@ -156,7 +115,9 @@ if menu == "Dashboard" and not df.empty:
             a_spend += r["amount"]/2
             h_spend += r["amount"]/2
 
-    # In hand (safe fix retained)
+    # =========================
+    # IN HAND
+    # =========================
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
@@ -176,60 +137,52 @@ if menu == "Dashboard" and not df.empty:
     a_save = a_in - a_spend
     h_save = h_in - h_spend
 
-    # ✅ FIXED PERSON CARD (CLEAN HTML STRING)
-    def person_card(name, income, spend, save):
-
-        if save >= 0:
-            savings_html = f"""
-            <div class="green">₹{save:,.0f}</div>
-            <div class="note-green">✔ Great! You're saving well.</div>
-            """
-        else:
-            savings_html = f"""
-            <div class="red">-₹{abs(save):,.0f}</div>
-            <div class="note-red">⚠ You've overspent this month.</div>
-            """
-
-        html = f"""
-        <div class="card">
-            <div class="person">{name}</div>
-
-            <div class="label">In Hand</div>
-            <div class="value">₹{income:,.0f}</div>
-
-            <hr/>
-
-            <div class="label">Spent</div>
-            <div class="value">₹{spend:,.0f}</div>
-
-            <hr/>
-
-            <div class="label">Savings</div>
-            {savings_html}
-        </div>
-        """
-        return html.strip()
-
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown(person_card("Ashwin", a_in, a_spend, a_save), unsafe_allow_html=True)
+        st.markdown("<div class='person-title'>Ashwin</div>", unsafe_allow_html=True)
+        st.write("In Hand")
+        st.markdown(f"<div class='big-number'>₹{a_in:,.0f}</div>", unsafe_allow_html=True)
+
+        st.write("Spent")
+        st.markdown(f"<div class='big-number'>₹{a_spend:,.0f}</div>", unsafe_allow_html=True)
+
+        st.write("Savings")
+        if a_save >= 0:
+            st.markdown(f"<div class='green'>₹{a_save:,.0f}</div>", unsafe_allow_html=True)
+            st.markdown("<div class='green'>✔ Great! You're saving well.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='red'>-₹{abs(a_save):,.0f}</div>", unsafe_allow_html=True)
+            st.markdown("<div class='red'>⚠ You've overspent this month.</div>", unsafe_allow_html=True)
 
     with col2:
-        st.markdown(person_card("Harshita", h_in, h_spend, h_save), unsafe_allow_html=True)
+        st.markdown("<div class='person-title'>Harshita</div>", unsafe_allow_html=True)
+        st.write("In Hand")
+        st.markdown(f"<div class='big-number'>₹{h_in:,.0f}</div>", unsafe_allow_html=True)
 
-    # IPO (UNCHANGED)
+        st.write("Spent")
+        st.markdown(f"<div class='big-number'>₹{h_spend:,.0f}</div>", unsafe_allow_html=True)
+
+        st.write("Savings")
+        if h_save >= 0:
+            st.markdown(f"<div class='green'>₹{h_save:,.0f}</div>", unsafe_allow_html=True)
+            st.markdown("<div class='green'>✔ Great! You're saving well.</div>", unsafe_allow_html=True)
+        else:
+            st.markdown(f"<div class='red'>-₹{abs(h_save):,.0f}</div>", unsafe_allow_html=True)
+            st.markdown("<div class='red'>⚠ You've overspent this month.</div>", unsafe_allow_html=True)
+
+    # =========================
+    # IPO
+    # =========================
     ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
-    st.markdown(f"""
-    <div class="card">
-        <div class="label">IPO SUMMARY</div>
-        <div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
-        <div>Entries: {len(ipo)}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.subheader("IPO Summary")
+    st.write("Amount:", ipo["amount"].sum())
+    st.write("Entries:", len(ipo))
 
-    # BAR CHART (UNCHANGED)
+    # =========================
+    # BAR CHART
+    # =========================
     cat = mdf.groupby("category")["amount"].sum().reset_index()
 
     if not cat.empty:
@@ -237,28 +190,20 @@ if menu == "Dashboard" and not df.empty:
         cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)", axis=1)
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-        fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
         st.plotly_chart(fig, use_container_width=True)
 
-    # DONUT (UNCHANGED)
+    # =========================
+    # DONUT
+    # =========================
     others = mdf[mdf["category"].str.lower() == "others"]
 
     if not others.empty:
         grp = others.groupby("description")["amount"].sum().reset_index()
-
-        c1, c2 = st.columns([2,1])
-
-        with c1:
-            fig = go.Figure(data=[go.Pie(labels=grp["description"], values=grp["amount"], hole=0.6)])
-            fig.update_layout(paper_bgcolor="#0b0f14", font=dict(color="white"))
-            st.plotly_chart(fig, use_container_width=True)
-
-        with c2:
-            for _, r in grp.iterrows():
-                st.write(f"{r['description']} — ₹{r['amount']:,.0f}")
+        fig = go.Figure(data=[go.Pie(labels=grp["description"], values=grp["amount"], hole=0.6)])
+        st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# COMPARE (UNCHANGED)
+# COMPARE
 # =========================
 elif menu == "Compare" and not df.empty:
 
@@ -279,5 +224,4 @@ elif menu == "Compare" and not df.empty:
     comp = comp.reset_index().melt(id_vars="category", var_name="Month", value_name="amount")
 
     fig = px.bar(comp, x="category", y="amount", color="Month", barmode="group")
-    fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
     st.plotly_chart(fig, use_container_width=True)
