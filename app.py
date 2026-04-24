@@ -144,7 +144,6 @@ st.markdown(f"""
     # =========================
     # INVESTMENT + SPEND LOGIC (FINAL FIX)
     # =========================
-
     a_spend, h_spend = 0, 0
     a_inv_rec, h_inv_rec = 0, 0
     a_inv_lump, h_inv_lump = 0, 0
