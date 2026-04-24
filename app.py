@@ -8,7 +8,7 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # -----------------------
-# UI (SAFE DARK THEME ONLY)
+# UI (SAFE DARK THEME + SIDEBAR FIX)
 # -----------------------
 st.markdown("""
 <style>
@@ -18,11 +18,43 @@ body {
 }
 h1 { color: #f5f5f5; }
 
+/* SIDEBAR */
 section[data-testid="stSidebar"] {
     background: #000000;
-    color: #cfcfcf;
+    color: #ffffff;
 }
 
+/* 🔥 SIDEBAR RADIO IMPROVEMENT */
+section[data-testid="stSidebar"] label {
+    font-size: 18px !important;
+    color: #f5f5f5 !important;
+    font-weight: 500;
+}
+
+section[data-testid="stSidebar"] div[role="radiogroup"] label {
+    font-size: 18px !important;
+    color: #e5e7eb !important;
+    padding: 6px 0;
+}
+
+/* ACTIVE RADIO */
+section[data-testid="stSidebar"] input:checked + div {
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+/* RADIO SIZE */
+section[data-testid="stSidebar"] input[type="radio"] {
+    transform: scale(1.5);
+    margin-right: 10px;
+}
+
+/* SPACING */
+section[data-testid="stSidebar"] div[role="radiogroup"] > label {
+    margin-bottom: 12px;
+}
+
+/* CARDS */
 .premium-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
@@ -75,7 +107,7 @@ hr {
 st.title("💰 Smart Budget Dashboard")
 
 # -----------------------
-# NAVIGATION (ORIGINAL)
+# NAVIGATION (UNCHANGED)
 # -----------------------
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 
