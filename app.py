@@ -136,13 +136,14 @@ a_spend, h_spend = 0, 0
 a_inv_rec, h_inv_rec = 0, 0
 a_inv_lump, h_inv_lump = 0, 0
 
-# auto-detect recurring column
+# detect recurring column
 rec_col = None
 for c in df.columns:
     if "recurring" in c:
         rec_col = c
         break
 
+# ===== LOOP =====
 for _, r in mdf.iterrows():
 
     p = str(r.get("paid_by", "")).strip().lower()
@@ -150,14 +151,14 @@ for _, r in mdf.iterrows():
 
     amt = r["amount"]
 
-    # safe recurring flag
     rec_flag = ""
     if rec_col:
         rec_flag = str(r.get(rec_col, "")).strip().lower()
 
-    if cat == "investment":
+    # ✅ robust category check
+    if "investment" in cat:
 
-        is_rec = "recurring" in rec_flag   # <-- THIS IS THE FIX
+        is_rec = "recurring" in rec_flag
 
         if is_rec:
             if p == "ashwin":
@@ -186,21 +187,33 @@ for _, r in mdf.iterrows():
             a_spend += amt / 2
             h_spend += amt / 2
 
-    cols = df.columns
-    a_col = find_inhand(cols, "ashwin")
-    h_col = find_inhand(cols, "harshita")
 
-    a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
-    h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
+# =========================
+# IN HAND (OUTSIDE LOOP)
+# =========================
+cols = df.columns
+a_col = find_inhand(cols, "ashwin")
+h_col = find_inhand(cols, "harshita")
 
-    a_save = a_in - a_inv_rec - a_spend
-    h_save = h_in - h_inv_rec - h_spend
+a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
+h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
 
-    col1, col2 = st.columns(2)
 
-    def render_person(name, income, inv_rec, inv_lump, spend, save, col):
-        with col:
-            html = f"""<div class="block">
+# =========================
+# SAVINGS
+# =========================
+a_save = a_in - a_inv_rec - a_spend
+h_save = h_in - h_inv_rec - h_spend
+
+
+# =========================
+# UI RENDER
+# =========================
+col1, col2 = st.columns(2)
+
+def render_person(name, income, inv_rec, inv_lump, spend, save, col):
+    with col:
+        html = f"""<div class="block">
 <div class="gold">{name}</div>
 
 <div class="label">In Hand</div>
@@ -218,17 +231,18 @@ for _, r in mdf.iterrows():
 <div class="label">Savings</div>
 """
 
-            if save >= 0:
-                html += f"<div class='green value'>₹{save:,.0f}</div>"
-            else:
-                html += f"<div class='red value'>-₹{abs(save):,.0f}</div>"
+        if save >= 0:
+            html += f"<div class='green value'>₹{save:,.0f}</div>"
+        else:
+            html += f"<div class='red value'>-₹{abs(save):,.0f}</div>"
 
-            html += "</div>"
-            st.markdown(html, unsafe_allow_html=True)
+        html += "</div>"
 
-    render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
-    render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
+        st.markdown(html, unsafe_allow_html=True)
 
+
+render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
+render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
     # =========================
     # IPO
     # =========================
