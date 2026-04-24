@@ -27,7 +27,6 @@ h1 {
 label {
     color: #e5e7eb !important;
     font-size: 18px !important;
-    font-weight: 500;
 }
 
 div[data-baseweb="select"] > div {
@@ -35,10 +34,6 @@ div[data-baseweb="select"] > div {
     color: #9ca3af !important;
     border-radius: 10px !important;
     border: 1px solid #1f2937 !important;
-}
-
-div[data-baseweb="select"] span {
-    color: #9ca3af !important;
 }
 
 .block {
@@ -67,9 +62,7 @@ menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 # HELPERS
 # =========================
 def extract_sheet_id(url):
-    if "docs.google.com" in url:
-        return url.split("/d/")[1].split("/")[0]
-    return url
+    return url.split("/d/")[1].split("/")[0] if "docs.google.com" in url else url
 
 def load_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
@@ -113,22 +106,20 @@ if sheet:
 # =========================
 if menu == "Dashboard" and not df.empty:
 
+    # DEFAULT YEAR
     years = sorted(df["year"].unique())
-    default_year = max(years)
-
-    year = st.selectbox("Select Year", years, index=years.index(default_year))
+    year = st.selectbox("Select Year", years, index=len(years)-1)
     year_df = df[df["year"] == year]
 
+    # DEFAULT MONTH
     months_df = year_df.sort_values("month_num")
     months = months_df["month"].unique()
-    latest_month = months_df.iloc[-1]["month"]
-
-    month = st.selectbox("Select Month", months, index=list(months).index(latest_month))
+    month = st.selectbox("Select Month", months, index=len(months)-1)
 
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
+    # YEARLY
     total_year = expense_df["amount"].sum()
-
     st.markdown(f"""
 <div class="block">
 <div class="label">Total Yearly Spend</div>
@@ -136,6 +127,7 @@ if menu == "Dashboard" and not df.empty:
 </div>
 """, unsafe_allow_html=True)
 
+    # MONTHLY
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
 
@@ -146,8 +138,11 @@ if menu == "Dashboard" and not df.empty:
 </div>
 """, unsafe_allow_html=True)
 
-    # Paid By logic (UNCHANGED)
+    # =========================
+    # PAID BY
+    # =========================
     a_spend, h_spend = 0, 0
+
     for _, r in mdf.iterrows():
         p = str(r.get("paid_by", "")).lower()
         if p == "ashwin":
@@ -162,17 +157,8 @@ if menu == "Dashboard" and not df.empty:
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
 
-    a_in, h_in = 0, 0
-
-    if a_col:
-        vals = year_df[a_col].dropna()
-        if not vals.empty:
-            a_in = vals.iloc[-1]
-
-    if h_col:
-        vals = year_df[h_col].dropna()
-        if not vals.empty:
-            h_in = vals.iloc[-1]
+    a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
+    h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
 
     a_save = a_in - a_spend
     h_save = h_in - h_spend
@@ -182,7 +168,7 @@ if menu == "Dashboard" and not df.empty:
     def render_person(name, income, spend, save, col):
         with col:
             html = f"""<div class="block">
-<div class="gold" style="font-size:22px;">{name}</div>
+<div class="gold">{name}</div>
 <div class="label">In Hand</div>
 <div class="gold value">₹{income:,.0f}</div>
 <div class="label">Spent</div>
@@ -190,13 +176,9 @@ if menu == "Dashboard" and not df.empty:
 <div class="label">Savings</div>"""
 
             if save >= 0:
-                html += f"""
-<div class="green value">₹{save:,.0f}</div>
-<div class="green">✔ Great! You're saving well.</div>"""
+                html += f"<div class='green value'>₹{save:,.0f}</div>"
             else:
-                html += f"""
-<div class="red value">-₹{abs(save):,.0f}</div>
-<div class="red">⚠ You've overspent this month.</div>"""
+                html += f"<div class='red value'>-₹{abs(save):,.0f}</div>"
 
             html += "</div>"
             st.markdown(html, unsafe_allow_html=True)
@@ -205,35 +187,71 @@ if menu == "Dashboard" and not df.empty:
     render_person("Harshita", h_in, h_spend, h_save, col2)
 
     # =========================
-    # COMPARE TAB
+    # EXPENSE BREAKDOWN
     # =========================
+    st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
+
+    cat = mdf.groupby("category")["amount"].sum().reset_index()
+
+    if not cat.empty:
+        fig = px.bar(cat, x="category", y="amount", text="amount")
+        fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14")
+        fig.update_traces(marker_color="#d4af37", textfont_color="white")
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =========================
+    # OTHER EXPENSES
+    # =========================
+    others = mdf[mdf["category"].str.lower() == "others"]
+
+    if not others.empty:
+        st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
+
+        grp = others.groupby("description")["amount"].sum().reset_index()
+        grp = grp.sort_values(by="amount", ascending=False)
+
+        total_other = grp["amount"].sum()
+
+        col1, col2 = st.columns([3,1])
+
+        with col1:
+            colors = px.colors.qualitative.Plotly[:len(grp)]
+
+            fig = go.Figure(data=[go.Pie(
+                labels=grp["description"],
+                values=grp["amount"],
+                hole=0.65,
+                marker=dict(colors=colors)
+            )])
+
+            fig.add_annotation(text=f"₹{total_other:,.0f}", x=0.5, y=0.5, showarrow=False, font_size=20)
+
+            fig.update_layout(showlegend=False, paper_bgcolor="#0b0f14")
+            st.plotly_chart(fig, use_container_width=True)
+
+        with col2:
+            for i, r in grp.iterrows():
+                st.markdown(
+                    f"<span style='color:{colors[i]}'>● {r['description']} — ₹{r['amount']:,.0f}</span>",
+                    unsafe_allow_html=True
+                )
+
+# =========================
+# COMPARE
+# =========================
 elif menu == "Compare" and not df.empty:
 
     years = sorted(df["year"].unique())
-    latest_year = max(years)
+    latest = len(years)-1
 
-    col1, col2 = st.columns(2)
-
-    with col1:
-        y1 = st.selectbox("Year 1", years, index=years.index(latest_year))
-    with col2:
-        y2 = st.selectbox("Year 2", years, index=years.index(latest_year))
+    y1 = st.selectbox("Year 1", years, index=latest)
+    y2 = st.selectbox("Year 2", years, index=latest)
 
     df_y1 = df[df["year"] == y1].sort_values("month_num")
     df_y2 = df[df["year"] == y2].sort_values("month_num")
 
-    months1 = df_y1["month"].unique()
-    months2 = df_y2["month"].unique()
-
-    latest_m1 = df_y1.iloc[-1]["month"]
-    latest_m2 = df_y2.iloc[-1]["month"]
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-        m1 = st.selectbox("Month 1", months1, index=list(months1).index(latest_m1))
-    with col4:
-        m2 = st.selectbox("Month 2", months2, index=list(months2).index(latest_m2))
+    m1 = st.selectbox("Month 1", df_y1["month"].unique(), index=len(df_y1["month"].unique())-1)
+    m2 = st.selectbox("Month 2", df_y2["month"].unique(), index=len(df_y2["month"].unique())-1)
 
     d1 = df[(df["year"]==y1)&(df["month"]==m1)]
     d2 = df[(df["year"]==y2)&(df["month"]==m2)]
