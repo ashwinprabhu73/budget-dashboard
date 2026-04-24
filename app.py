@@ -169,10 +169,16 @@ if menu == "Dashboard" and not df.empty:
                 ashwin_spend += row["amount"] / 2
                 harshita_spend += row["amount"] / 2
 
-    cols = {c.lower(): c for c in df.columns}
+    cols = df.columns
 
-    ashwin_inhand = year_df[cols["ashwin in hand"]].dropna().iloc[-1] if "ashwin in hand" in cols else 0
-    harshita_inhand = year_df[cols["harshita in hand"]].dropna().iloc[-1] if "harshita in hand" in cols else 0
+    ashwin_inhand = 0
+    harshita_inhand = 0
+
+    if "ashwin in hand" in cols:
+        ashwin_inhand = year_df["ashwin in hand"].dropna().iloc[-1]
+
+    if "harshita in hand" in cols:
+        harshita_inhand = year_df["harshita in hand"].dropna().iloc[-1]
 
     ashwin_savings = ashwin_inhand - ashwin_spend
     harshita_savings = harshita_inhand - harshita_spend
@@ -220,16 +226,28 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # CATEGORY CHART
+    # -----------------------
+    # CATEGORY CHART (FIXED)
+    # -----------------------
     cat = monthly_df.groupby("category")["amount"].sum().reset_index()
 
     if not cat.empty:
-        fig = px.bar(cat, x="category", y="amount")
+        total = cat["amount"].sum()
+        cat["percent"] = (cat["amount"] / total) * 100
+        cat["label"] = cat.apply(
+            lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
+        )
+
+        fig = px.bar(cat, x="category", y="amount", text="label")
+
+        fig.update_traces(textposition="outside", textfont=dict(size=14, color="white"))
         fig.update_layout(
+            yaxis=dict(visible=False),
             plot_bgcolor="#0a0a0c",
             paper_bgcolor="#0a0a0c",
             font=dict(color="white")
         )
+
         st.plotly_chart(fig, use_container_width=True)
 
 # =======================
