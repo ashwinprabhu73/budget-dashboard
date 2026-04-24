@@ -214,7 +214,7 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
     # =========================
-# ✅ OTHERS (FINAL FIX)
+# ✅ OTHERS (COLOR MATCH FIX)
 # =========================
 others = mdf[mdf["category"].str.lower() == "others"]
 
@@ -222,14 +222,11 @@ if not others.empty:
 
     st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
 
-    # ✅ SORT DESCENDING
+    # ✅ SORT DESC
     grp = others.groupby("description")["amount"].sum().reset_index()
     grp = grp.sort_values(by="amount", ascending=False)
 
     total_other = grp["amount"].sum()
-
-    # ✅ COLOR PALETTE (FIXED ORDER)
-    colors = px.colors.qualitative.Set3[:len(grp)]
 
     col1, col2 = st.columns([3, 1])
 
@@ -238,10 +235,10 @@ if not others.empty:
             labels=grp["description"],
             values=grp["amount"],
             hole=0.65,
-            textinfo='percent',
-            marker=dict(colors=colors)  # ✅ MATCH COLORS
+            textinfo='percent'
         )])
 
+        # ✅ CENTER VALUE
         fig.add_annotation(
             text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
             x=0.5, y=0.5,
@@ -257,12 +254,16 @@ if not others.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
+        # ✅ Extract actual colors used by plotly
+        pie_colors = fig.data[0]['marker']['colors']
+
+    # ✅ Legend with EXACT same colors
     with col2:
-        for i, r in grp.iterrows():
-            color = colors[i]
+        for i, r in enumerate(grp.itertuples()):
+            color = pie_colors[i] if pie_colors and i < len(pie_colors) else "#ffffff"
 
             st.markdown(
-                f"<span style='color:{color}'>● {r['description']} — ₹{r['amount']:,.0f}</span>",
+                f"<span style='color:{color}'>● {r.description} — ₹{r.amount:,.0f}</span>",
                 unsafe_allow_html=True
             )
 # =========================
