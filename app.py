@@ -125,8 +125,7 @@ if menu == "Dashboard" and not df.empty:
 # IPO (MOVED HERE ✅)
 # =========================
 ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
-
-    st.markdown(f"""
+st.markdown(f"""
 <div class="block">
 <div class="gold">IPO SUMMARY</div>
 <div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
