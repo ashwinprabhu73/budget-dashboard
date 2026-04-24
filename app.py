@@ -133,7 +133,7 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-    st.markdown(f"""
+st.markdown(f"""
 <div class="block">
 <div class="label">{month} Monthly Spend</div>
 <div class="gold value">₹{monthly_total:,.0f}</div>
