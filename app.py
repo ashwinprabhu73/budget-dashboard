@@ -2,13 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# -----------------------
-# CONFIG
-# -----------------------
 st.set_page_config(layout="wide")
 
 # -----------------------
-# UI (UNCHANGED)
+# UI
 # -----------------------
 st.markdown("""
 <style>
@@ -21,19 +18,6 @@ h1 { color: #f5f5f5; }
 section[data-testid="stSidebar"] {
     background: #000000;
     color: #ffffff;
-}
-
-/* SIDEBAR FIX */
-section[data-testid="stSidebar"] label {
-    font-size: 18px !important;
-    color: #f5f5f5 !important;
-}
-section[data-testid="stSidebar"] div[role="radiogroup"] label {
-    font-size: 18px !important;
-    color: #e5e7eb !important;
-}
-section[data-testid="stSidebar"] input[type="radio"] {
-    transform: scale(1.5);
 }
 
 /* CARDS */
@@ -50,7 +34,7 @@ section[data-testid="stSidebar"] input[type="radio"] {
 }
 
 .big-number {
-    font-size: 32px;
+    font-size: 28px;
     font-weight: 700;
     background: linear-gradient(90deg, #d4af37, #f5d77a);
     -webkit-background-clip: text;
@@ -62,19 +46,7 @@ section[data-testid="stSidebar"] input[type="radio"] {
     border-radius: 16px;
     padding: 22px;
     border: 1px solid #2a2a2e;
-    position: relative;
 }
-
-.gold-card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    height: 3px;
-    width: 100%;
-    background: linear-gradient(90deg, #d4af37, #f5d77a);
-}
-
-.gold-title { color: #d4af37; }
 
 hr {
     border: none;
@@ -87,9 +59,6 @@ hr {
 
 st.title("💰 Smart Budget Dashboard")
 
-# -----------------------
-# NAV
-# -----------------------
 menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
 
 # -----------------------
@@ -112,7 +81,8 @@ def preprocess(df):
         "Date": "date",
         "Expense": "description",
         "Expns Category": "category",
-        "Total cost": "amount"
+        "Total cost": "amount",
+        "Paid By": "paid_by"
     })
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
@@ -156,7 +126,7 @@ if menu == "Dashboard" and not df.empty:
 
     yearly_total = expense_df["amount"].sum()
 
-    # ✅ ONLY YEARLY ABOVE
+    # YEARLY
     st.markdown(f"""
     <div class="premium-card">
         <div class="caption">Total Yearly Spend</div>
@@ -164,13 +134,13 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # Month dropdown
+    # MONTH
     months = year_df.sort_values("month_num")["month"].unique()
     selected_month = st.selectbox("Select Month", months, index=len(months)-1)
 
-    monthly_total = expense_df[expense_df["month"] == selected_month]["amount"].sum()
+    monthly_df = expense_df[expense_df["month"] == selected_month]
+    monthly_total = monthly_df["amount"].sum()
 
-    # ✅ MONTHLY BELOW
     st.markdown(f"""
     <div class="premium-card">
         <div class="caption">{selected_month} Monthly Spend</div>
@@ -178,46 +148,48 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
+    # ======================
+    # NEW FEATURE 🔥
+    # ======================
+    ashwin = 0
+    harshita = 0
+
+    for _, row in monthly_df.iterrows():
+        if row["paid_by"] == "Ashwin":
+            ashwin += row["amount"]
+        elif row["paid_by"] == "Harshita":
+            harshita += row["amount"]
+        elif row["paid_by"] == "US":
+            ashwin += row["amount"] / 2
+            harshita += row["amount"] / 2
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(f"""
+        <div class="premium-card">
+            <div class="caption">Ashwin Spend</div>
+            <div class="big-number">₹{ashwin:,.0f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown(f"""
+        <div class="premium-card">
+            <div class="caption">Harshita Spend</div>
+            <div class="big-number">₹{harshita:,.0f}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     st.markdown("<hr>", unsafe_allow_html=True)
 
+    # IPO
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
 
     st.markdown(f"""
     <div class="gold-card">
-        <div class="gold-title">IPO SUMMARY</div>
+        <div class="caption">IPO SUMMARY</div>
         <div>Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
         <div>Entries: {len(ipo_month)}</div>
     </div>
     """, unsafe_allow_html=True)
-
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    filtered = expense_df[expense_df["month"] == selected_month]
-
-    st.subheader(f"📊 Category Breakdown - {selected_month}")
-
-    cat = filtered.groupby("category")["amount"].sum().reset_index()
-
-    if not cat.empty:
-        total = cat["amount"].sum()
-        cat["percent"] = (cat["amount"] / total) * 100
-        cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1)
-
-        fig = px.bar(cat, x="category", y="amount", text="label")
-
-        fig.update_traces(textposition="outside", textfont=dict(size=16, color="white"))
-        fig.update_layout(
-            yaxis=dict(visible=False),
-            plot_bgcolor="#0a0a0c",
-            paper_bgcolor="#0a0a0c",
-            font=dict(color="white"),
-            legend=dict(font=dict(color="white"))
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-# =======================
-# COMPARE (UNCHANGED)
-# =======================
-elif menu == "Compare" and not df.empty:
-    st.write("Compare unchanged ✅")
