@@ -94,78 +94,82 @@ df = pd.DataFrame()
 if sheet:
     df = preprocess(load_sheet(extract_sheet_id(sheet)))
 
-# =========================
-# DASHBOARD
-# =========================
 if menu == "Dashboard" and not df.empty:
 
-    years = sorted(df["year"].unique())
-    year = st.selectbox("Select Year", years, index=len(years)-1)
-    year_df = df[df["year"] == year]
+    # =========================
+    # YEAR + MONTH
+    # =========================
+    years = sorted(df["year"].dropna().unique())
+    months = list(df["month"].dropna().unique())
 
-    months_df = year_df.sort_values("month_num")
-    months = months_df["month"].unique()
+    year = st.selectbox("Select Year", years, index=len(years)-1)
     month = st.selectbox("Select Month", months, index=len(months)-1)
 
-    expense_df = year_df[year_df["category"].str.lower() != "ipo"]
-
-    total_year = expense_df["amount"].sum()
-
-    # ===== YEARLY =====
-    col_y1, col_y2 = st.columns([1,1])
-
-    with col_y1:
-        st.markdown(f"""
-        <div class="block">
-        <div class="gold">TOTAL YEARLY SPEND</div>
-        <div class="label">Amount</div>
-        <div class="gold value">₹{total_year:,.0f}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    year_df = df[df["year"] == year]
+    expense_df = year_df[year_df["type"] == "expense"]
 
     # =========================
-    # IPO SUMMARY (FINAL FIX)
+    # YEARLY SPEND
+    # =========================
+    yearly_total = expense_df["amount"].sum()
+
+    st.markdown(f"""
+    <div class="block">
+        <div class="label">Total Yearly Spend</div>
+        <div class="gold value">₹{yearly_total:,.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # =========================
+    # IPO SUMMARY (FIXED)
     # =========================
     ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
 
-    st.markdown(
-        f"""
-        <div class="block">
+    st.markdown(f"""
+    <div class="block">
 
-            <div class="gold">YEARLY IPO SUMMARY</div>
+        <div class="gold">YEARLY IPO SUMMARY</div>
 
-            <div style="display:flex; justify-content:space-between; margin-top:15px;">
-                <div>
-                    <div class="label">Total Amount Utilised</div>
-                    <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
-                </div>
-
-                <div>
-                    <div class="label">Allotment Profit</div>
-                    <div class="gold value">₹0</div>
-                </div>
+        <div style="display:flex; justify-content:space-between; margin-top:15px;">
+            <div>
+                <div class="label">Total Amount Utilised</div>
+                <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; margin-top:20px;">
-                <div>
-                    <div class="label">Applied</div>
-                    <div class="gold value">{len(ipo_year)}</div>
-                </div>
-
-                <div>
-                    <div class="label">Allotted</div>
-                    <div class="gold value">0</div>
-                </div>
+            <div>
+                <div class="label">Allotment Profit</div>
+                <div class="gold value">₹0</div>
             </div>
-
         </div>
-        """,
-        unsafe_allow_html=True
-    )
+
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <div>
+                <div class="label">Applied</div>
+                <div class="gold value">{len(ipo_year)}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotted</div>
+                <div class="gold value">0</div>
+            </div>
+        </div>
+
+    </div>
+    """, unsafe_allow_html=True)
+
     # =========================
-    # MONTHLY (REQUIRED FIX)
+    # MONTHLY FILTER
     # =========================
     mdf = expense_df[expense_df["month"] == month]
+    monthly_total = mdf["amount"].sum()
+
+    st.markdown(f"""
+    <div class="block">
+        <div class="label">{month} Monthly Spend</div>
+        <div class="gold value">₹{monthly_total:,.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # =========================
     # INVESTMENT + SPEND LOGIC
     # =========================
@@ -175,37 +179,36 @@ if menu == "Dashboard" and not df.empty:
 
     rec_col = None
     for c in df.columns:
-        if "recurring" in c:
+        if "recurring" in c.lower():
             rec_col = c
             break
 
     for _, r in mdf.iterrows():
 
-        p = str(r.get("paid_by", "")).strip().lower()
-        cat = str(r.get("category", "")).strip().lower()
+        p = str(r.get("paid_by", "")).lower()
+        cat = str(r.get("category", "")).lower()
         amt = r["amount"]
 
-        rec_flag = str(r.get(rec_col, "")).strip().lower() if rec_col else ""
+        rec_flag = str(r.get(rec_col, "")).lower() if rec_col else ""
 
-        if "investment" in cat:
-            is_rec = "recurring" in rec_flag
+        if cat == "investment":
 
-            if is_rec:
+            if "recurring" in rec_flag:
                 if p == "ashwin":
                     a_inv_rec += amt
                 elif p == "harshita":
                     h_inv_rec += amt
                 elif p == "us":
-                    a_inv_rec += amt/2
-                    h_inv_rec += amt/2
+                    a_inv_rec += amt / 2
+                    h_inv_rec += amt / 2
             else:
                 if p == "ashwin":
                     a_inv_lump += amt
                 elif p == "harshita":
                     h_inv_lump += amt
                 elif p == "us":
-                    a_inv_lump += amt/2
-                    h_inv_lump += amt/2
+                    a_inv_lump += amt / 2
+                    h_inv_lump += amt / 2
 
         else:
             if p == "ashwin":
@@ -213,12 +216,18 @@ if menu == "Dashboard" and not df.empty:
             elif p == "harshita":
                 h_spend += amt
             elif p == "us":
-                a_spend += amt/2
-                h_spend += amt/2
+                a_spend += amt / 2
+                h_spend += amt / 2
 
     # =========================
-    # IN HAND
+    # INCOME
     # =========================
+    def find_inhand(cols, name):
+        for c in cols:
+            if name in c.lower() and "hand" in c.lower():
+                return c
+        return None
+
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
@@ -236,23 +245,24 @@ if menu == "Dashboard" and not df.empty:
 
     def render_person(name, income, inv_rec, inv_lump, spend, save, col):
         with col:
-            html = f"""<div class="block">
-<div class="gold">{name}</div>
+            html = f"""
+            <div class="block">
+                <div class="gold">{name}</div>
 
-<div class="label">In Hand</div>
-<div class="gold value">₹{income:,.0f}</div>
+                <div class="label">In Hand</div>
+                <div class="gold value">₹{income:,.0f}</div>
 
-<div class="label">Investment</div>
-<div class="gold value">₹{inv_rec:,.0f}</div>
+                <div class="label">Investment</div>
+                <div class="gold value">₹{inv_rec:,.0f}</div>
 
-<div class="label">LumpSum Investment</div>
-<div class="gold value">₹{inv_lump:,.0f}</div>
+                <div class="label">LumpSum Investment</div>
+                <div class="gold value">₹{inv_lump:,.0f}</div>
 
-<div class="label">Spent</div>
-<div class="gold value">₹{spend:,.0f}</div>
+                <div class="label">Spent</div>
+                <div class="gold value">₹{spend:,.0f}</div>
 
-<div class="label">Savings</div>
-"""
+                <div class="label">Savings</div>
+            """
 
             if save >= 0:
                 html += f"<div class='green value'>₹{save:,.0f}</div>"
@@ -260,6 +270,7 @@ if menu == "Dashboard" and not df.empty:
                 html += f"<div class='red value'>-₹{abs(save):,.0f}</div>"
 
             html += "</div>"
+
             st.markdown(html, unsafe_allow_html=True)
 
     render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
