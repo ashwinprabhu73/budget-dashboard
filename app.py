@@ -151,12 +151,12 @@ if menu == "Dashboard" and not df.empty:
 <div style="display:flex; justify-content:center; gap:120px;">
 
 <div style="min-width:200px;">
-<div>Amount</div>
+<div class="gold value">Amount Utilised</div>
 <div class="gold value">₹{total_amt:,.0f}</div>
 </div>
 
 <div style="min-width:200px;">
-<div>Allotment Profit</div>
+<div class="gold value">Allotment Profit</div>
 <div class="green value">₹{total_profit:,.0f}</div>
 </div>
 
@@ -167,12 +167,12 @@ if menu == "Dashboard" and not df.empty:
 <div style="display:flex; justify-content:center; gap:120px;">
 
 <div style="min-width:200px;">
-<div>Entries</div>
+<div class="gold value">Applied</div>
 <div>{total_entries}</div>
 </div>
 
 <div style="min-width:200px;">
-<div>Allotment</div>
+<div class="gold value">Allotment</div>
 <div>{total_allot}</div>
 </div>
 
