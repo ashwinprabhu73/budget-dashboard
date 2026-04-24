@@ -294,77 +294,55 @@ if menu == "Dashboard" and not df.empty:
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
 
 
+    st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
+
+    rec_col = None
+    for c in df.columns:
+        if "recurring" in c.lower():
+            rec_col = c
+            break
+
+    mdf["type"] = "Lumpsum"
+
+    if rec_col:
+        mdf["type"] = mdf[rec_col].apply(
+            lambda x: "Recurring" if str(x).strip().lower() == "recurring" else "Lumpsum"
+        )
+
+    cat_split = mdf.groupby(["category", "type"])["amount"].sum().reset_index()
+
+    fig = px.bar(
+        cat_split,
+        x="category",
+        y="amount",
+        color="type",
+        text="amount",
+        barmode="stack"
+    )
+
+    fig.update_traces(
+        texttemplate='₹%{text:,.0f}',
+        textposition='inside'
+    )
+
+    fig.for_each_trace(lambda t: t.update(
+        marker_color="#3b82f6" if t.name == "Recurring" else "#d4af37"
+    ))
+
+    fig.update_layout(
+        plot_bgcolor="#0b0f14",
+        paper_bgcolor="#0b0f14",
+        font=dict(color="white"),
+        xaxis=dict(title=None, tickfont=dict(color="#cbd5e1")),
+        yaxis=dict(showgrid=False, showticklabels=False)
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
     # =========================
-# EXPENSE BREAKDOWN (STACKED: RECURRING vs LUMPSUM)
-# =========================
-st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
-
-# ---------- Detect recurring column ----------
-rec_col = None
-for c in df.columns:
-    if "recurring" in c.lower():
-        rec_col = c
-        break
-
-# ---------- Create type column ----------
-mdf["type"] = "Lumpsum"
-
-if rec_col:
-    mdf["type"] = mdf[rec_col].apply(
-        lambda x: "Recurring" if str(x).strip().lower() == "recurring" else "Lumpsum"
-    )
-
-# ---------- Group data ----------
-cat_split = mdf.groupby(["category", "type"])["amount"].sum().reset_index()
-
-# ---------- Create stacked bar ----------
-fig = px.bar(
-    cat_split,
-    x="category",
-    y="amount",
-    color="type",
-    text="amount",
-    barmode="stack"
-)
-
-# ---------- Format text ----------
-fig.update_traces(
-    texttemplate='₹%{text:,.0f}',
-    textposition='inside'
-)
-
-# ---------- Apply custom colors ----------
-fig.for_each_trace(lambda t: t.update(
-    marker_color="#3b82f6" if t.name == "Recurring" else "#d4af37"
-))
-
-# ---------- Layout styling ----------
-fig.update_layout(
-    plot_bgcolor="#0b0f14",
-    paper_bgcolor="#0b0f14",
-    font=dict(color="white"),
-
-    xaxis=dict(
-        title=None,
-        tickfont=dict(color="#cbd5e1")
-    ),
-
-    yaxis=dict(
-        showgrid=False,
-        showticklabels=False
-    ),
-
-    legend=dict(
-        title=None,
-        orientation="h",
-        y=1.1,
-        x=0.5,
-        xanchor="center"
-    )
-)
-
-# ---------- Render ----------
-st.plotly_chart(fig, use_container_width=True)
+    # OTHER EXPENSES (THIS MUST ALIGN)
+    # =========================
+    others = mdf[mdf["category"].str.lower() == "others"]
 
     # =========================
     # OTHER EXPENSES
