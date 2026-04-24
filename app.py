@@ -6,11 +6,72 @@ from streamlit.components.v1 import html
 
 st.set_page_config(layout="wide")
 
+# =========================
+# 🎨 GLOBAL STYLES (REFINED UI)
+# =========================
+st.markdown("""
+<style>
+html, body, [data-testid="stAppViewContainer"] {
+    background-color: #0b0f14;
+}
+
+[data-testid="stSidebar"] {
+    background: #0a0f1a;
+}
+
+h1 {
+    color: #e5e7eb !important;
+    font-size: 42px !important;
+    font-weight: 700;
+}
+
+div[data-baseweb="select"] > div {
+    background-color: #111827 !important;
+    color: #cbd5e1 !important;
+    border-radius: 10px !important;
+    border: 1px solid #1f2937 !important;
+}
+
+.block {
+    background: linear-gradient(145deg, #111827, #0b1220);
+    padding: 20px;
+    border-radius: 14px;
+    border: 1px solid #1f2937;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 20px;
+    color: #60a5fa;
+    margin-top: 25px;
+    margin-bottom: 10px;
+}
+
+.label {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.value {
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.gold { color: #d4af37; }
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+
+.person-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f3f4f6;
+    margin-bottom: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("Smart Budget Dashboard")
 
-# =========================
-# MENU
-# =========================
 menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 
 # =========================
@@ -68,36 +129,52 @@ if menu == "Dashboard" and not df.empty:
     months = year_df.sort_values("month_num")["month"].unique()
     month = st.selectbox("Select Month", months, index=len(months)-1)
 
-    # ✅ FIX FILTER
     expense_df = year_df[year_df["category"] != "ipo"]
 
     # YEARLY
     total_year = expense_df["amount"].sum()
-    st.write("Total Yearly Spend:", total_year)
+    st.markdown(f"<div class='block'><div class='label'>Total Yearly Spend</div><div class='gold value'>₹{total_year:,.0f}</div></div>", unsafe_allow_html=True)
 
     # IPO
     ipo_year = year_df[year_df["category"] == "ipo"]
 
     html(f"""
-    <div style="background:#111827;padding:15px;border-radius:10px;">
-        <h4 style="color:#d4af37;">IPO SUMMARY</h4>
-        <p>Total: ₹{ipo_year['amount'].sum():,.0f}</p>
-        <p>Applied: {len(ipo_year)}</p>
+    <div style="background:#111827;padding:18px;border-radius:12px;border:1px solid #1f2937;margin-bottom:15px;">
+        <div style="color:#d4af37;font-weight:bold;font-size:18px;">YEARLY IPO SUMMARY</div>
+        <div style="display:flex;justify-content:space-between;margin-top:15px;">
+            <div>
+                <div style="color:#9ca3af;">Total Amount Utilised</div>
+                <div style="color:#d4af37;font-size:26px;font-weight:bold;">₹{ipo_year['amount'].sum():,.0f}</div>
+            </div>
+            <div>
+                <div style="color:#9ca3af;">Allotment Profit</div>
+                <div style="color:#d4af37;font-size:26px;font-weight:bold;">₹0</div>
+            </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:20px;">
+            <div>
+                <div style="color:#9ca3af;">Applied</div>
+                <div style="color:#d4af37;font-size:26px;font-weight:bold;">{len(ipo_year)}</div>
+            </div>
+            <div>
+                <div style="color:#9ca3af;">Allotted</div>
+                <div style="color:#d4af37;font-size:26px;font-weight:bold;">0</div>
+            </div>
+        </div>
     </div>
-    """, height=150)
+    """, height=220)
 
     # MONTHLY
     mdf = expense_df[expense_df["month"] == month]
+    monthly_total = mdf["amount"].sum()
 
-    # =========================
+    st.markdown(f"<div class='block'><div class='label'>{month} Monthly Spend</div><div class='gold value'>₹{monthly_total:,.0f}</div></div>", unsafe_allow_html=True)
+
     # PERSON LOGIC
-    # =========================
     a_spend = h_spend = 0
-
     for _, r in mdf.iterrows():
         p = str(r.get("paid_by", "")).lower()
         amt = r["amount"]
-
         if p == "ashwin":
             a_spend += amt
         elif p == "harshita":
@@ -106,28 +183,45 @@ if menu == "Dashboard" and not df.empty:
             a_spend += amt/2
             h_spend += amt/2
 
-    st.write("Ashwin:", a_spend)
-    st.write("Harshita:", h_spend)
+    col1, col2 = st.columns(2)
 
-    # =========================
+    def render_person(name, spend, col):
+        with col:
+            st.markdown(f"""
+            <div class="block">
+                <div class="person-name">{name}</div>
+                <div class="label">Spent</div>
+                <div class="gold value">₹{spend:,.0f}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    render_person("Ashwin", a_spend, col1)
+    render_person("Harshita", h_spend, col2)
+
     # EXPENSE BREAKDOWN
-    # =========================
+    st.markdown('<div class="section-title">Expense Breakdown</div>', unsafe_allow_html=True)
+
     cat = mdf.groupby("category")["amount"].sum().reset_index()
     fig = px.bar(cat, x="category", y="amount")
-    st.plotly_chart(fig)
 
-    # =========================
+    fig.update_layout(
+        plot_bgcolor="#0b0f14",
+        paper_bgcolor="#0b0f14",
+        font=dict(color="white")
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
     # OTHER
-    # =========================
     others = mdf[mdf["category"] == "others"]
 
     if not others.empty:
+        st.markdown('<div class="section-title">Other Expenses</div>', unsafe_allow_html=True)
+
         grp = others.groupby("description")["amount"].sum().reset_index()
-        fig = go.Figure(data=[go.Pie(
-            labels=grp["description"],
-            values=grp["amount"]
-        )])
-        st.plotly_chart(fig)
+
+        fig = go.Figure(data=[go.Pie(labels=grp["description"], values=grp["amount"], hole=0.6)])
+        st.plotly_chart(fig, use_container_width=True)
 
 # =========================
 # COMPARE
@@ -149,4 +243,4 @@ elif menu == "Compare" and not df.empty:
     comp = comp.reset_index().melt(id_vars="category", var_name="Year", value_name="amount")
 
     fig = px.bar(comp, x="category", y="amount", color="Year", barmode="group")
-    st.plotly_chart(fig)
+    st.plotly_chart(fig, use_container_width=True)
