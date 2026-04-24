@@ -188,8 +188,29 @@ if menu == "Dashboard" and not df.empty:
                 ashwin_spend += row["amount"] / 2
                 harshita_spend += row["amount"] / 2
 
-    ashwin_inhand = year_df["ashwin in hand"].dropna().iloc[-1] if "ashwin in hand" in df.columns else 0
-    harshita_inhand = year_df["harshita in hand"].dropna().iloc[-1] if "harshita in hand" in df.columns else 0
+    def find_inhand_column(columns, person_name):
+    for col in columns:
+        if person_name in col and "hand" in col:
+            return col
+    return None
+
+cols = df.columns
+
+ashwin_col = find_inhand_column(cols, "ashwin")
+harshita_col = find_inhand_column(cols, "harshita")
+
+ashwin_inhand = 0
+harshita_inhand = 0
+
+if ashwin_col:
+    ashwin_vals = year_df[ashwin_col].dropna()
+    if not ashwin_vals.empty:
+        ashwin_inhand = ashwin_vals.iloc[-1]
+
+if harshita_col:
+    harshita_vals = year_df[harshita_col].dropna()
+    if not harshita_vals.empty:
+        harshita_inhand = harshita_vals.iloc[-1]
 
     ashwin_savings = ashwin_inhand - ashwin_spend
     harshita_savings = harshita_inhand - harshita_spend
