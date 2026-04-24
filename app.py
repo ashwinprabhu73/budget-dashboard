@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+# -----------------------
+# CONFIG
+# -----------------------
 st.set_page_config(layout="wide")
 
 # -----------------------
@@ -77,13 +80,17 @@ def load_excel(file):
     return pd.concat(pd.read_excel(file, sheet_name=None).values(), ignore_index=True)
 
 def preprocess(df):
+    # 🔥 FIX: normalize column names
+    df.columns = df.columns.str.strip().str.lower()
+
     df = df.rename(columns={
-        "Date": "date",
-        "Expense": "description",
-        "Expns Category": "category",
-        "Total cost": "amount",
-        "Paid By": "paid_by"
+        "date": "date",
+        "expense": "description",
+        "expns category": "category",
+        "total cost": "amount",
+        "paid by": "paid_by"
     })
+
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df = df.dropna(subset=["date"])
     df["year"] = df["date"].dt.year
@@ -148,20 +155,25 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # ======================
-    # NEW FEATURE 🔥
-    # ======================
+    # -----------------------
+    # PAID BY (SAFE FIX)
+    # -----------------------
     ashwin = 0
     harshita = 0
 
-    for _, row in monthly_df.iterrows():
-        if row["paid_by"] == "Ashwin":
-            ashwin += row["amount"]
-        elif row["paid_by"] == "Harshita":
-            harshita += row["amount"]
-        elif row["paid_by"] == "US":
-            ashwin += row["amount"] / 2
-            harshita += row["amount"] / 2
+    if "paid_by" in monthly_df.columns:
+        for _, row in monthly_df.iterrows():
+            payer = str(row["paid_by"]).strip().lower()
+
+            if payer == "ashwin":
+                ashwin += row["amount"]
+
+            elif payer == "harshita":
+                harshita += row["amount"]
+
+            elif payer == "us":
+                ashwin += row["amount"] / 2
+                harshita += row["amount"] / 2
 
     col1, col2 = st.columns(2)
 
@@ -193,3 +205,9 @@ if menu == "Dashboard" and not df.empty:
         <div>Entries: {len(ipo_month)}</div>
     </div>
     """, unsafe_allow_html=True)
+
+# =======================
+# COMPARE
+# =======================
+elif menu == "Compare" and not df.empty:
+    st.write("Compare unchanged ✅")
