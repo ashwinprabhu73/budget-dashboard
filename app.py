@@ -124,43 +124,42 @@ with col_y1:
     </div>
     """, unsafe_allow_html=True)
 
-# IPO (YEARLY)
-with col_y2:
-    ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+# =========================
+# IPO SUMMARY (FULL WIDTH)
+# =========================
+ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
 
-    html = f"""
-    <div class="block">
+st.markdown(f"""
+<div class="block">
 
-        <div class="gold">YEARLY IPO SUMMARY</div>
+    <div class="gold">YEARLY IPO SUMMARY</div>
 
-        <div style="display:flex; justify-content:space-between; margin-top:15px;">
-            <div>
-                <div class="label">Total Amount Utilised</div>
-                <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
-            </div>
-
-            <div>
-                <div class="label">Allotment Profit</div>
-                <div class="gold value">₹0</div>
-            </div>
+    <div style="display:flex; justify-content:space-between; margin-top:15px;">
+        <div>
+            <div class="label">Total Amount Utilised</div>
+            <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; margin-top:20px;">
-            <div>
-                <div class="label">Applied</div>
-                <div class="gold value">{len(ipo_year)}</div>
-            </div>
-
-            <div>
-                <div class="label">Allotted</div>
-                <div class="gold value">0</div>
-            </div>
+        <div>
+            <div class="label">Allotment Profit</div>
+            <div class="gold value">₹0</div>
         </div>
-
     </div>
-    """
 
-    st.markdown(html, unsafe_allow_html=True)
+    <div style="display:flex; justify-content:space-between; margin-top:20px;">
+        <div>
+            <div class="label">Applied</div>
+            <div class="gold value">{len(ipo_year)}</div>
+        </div>
+
+        <div>
+            <div class="label">Allotted</div>
+            <div class="gold value">0</div>
+        </div>
+    </div>
+
+</div>
+""", unsafe_allow_html=True)
 
     # =========================
     # MONTHLY (NOW FULL WIDTH ✅)
