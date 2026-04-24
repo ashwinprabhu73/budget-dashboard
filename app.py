@@ -227,18 +227,35 @@ if menu == "Dashboard" and not df.empty:
 </div>
 """, unsafe_allow_html=True)
 
-    # =========================
-    # EXPENSE BREAKDOWN
-    # =========================
     st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
 
-    cat = mdf.groupby("category")["amount"].sum().reset_index()
+cat = mdf.groupby("category")["amount"].sum().reset_index()
 
-    if not cat.empty:
-        fig = px.bar(cat, x="category", y="amount", text="amount")
-        fig.update_traces(marker_color="#d4af37", textfont_color="white")
-        fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14")
-        st.plotly_chart(fig, use_container_width=True)
+if not cat.empty:
+    total = cat["amount"].sum()
+
+    cat["label"] = cat.apply(
+        lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)",
+        axis=1
+    )
+
+    fig = px.bar(cat, x="category", y="amount", text="label")
+
+    fig.update_traces(
+        marker_color="#d4af37",
+        textposition="outside",
+        textfont=dict(color="white", size=12)
+    )
+
+    fig.update_layout(
+        plot_bgcolor="#0b0f14",
+        paper_bgcolor="#0b0f14",
+        yaxis=dict(showgrid=False, showticklabels=False),
+        xaxis=dict(title=None, tickfont=dict(color="#cbd5e1")),
+        font=dict(color="white")
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
     # =========================
     # OTHER EXPENSES
