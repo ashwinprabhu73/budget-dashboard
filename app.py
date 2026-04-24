@@ -126,38 +126,41 @@ if menu == "Dashboard" and not df.empty:
 
     # IPO (YEARLY)
 ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+
 with col_y2:
-    st.markdown(f"""
+    html = f"""
     <div class="block">
-    
-    <div class="gold">YEARLY IPO SUMMARY</div>
 
-    <div style="display:flex; justify-content:space-between; margin-top:10px;">
-        <div>
-            <div class="label">Total Amount Utilised</div>
-            <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+        <div class="gold">YEARLY IPO SUMMARY</div>
+
+        <div style="display:flex; justify-content:space-between; margin-top:15px;">
+            <div>
+                <div class="label">Total Amount Utilised</div>
+                <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotment Profit</div>
+                <div class="gold value">₹0</div>
+            </div>
         </div>
 
-        <div>
-            <div class="label">Allotment Profit</div>
-            <div class="gold value">₹0</div>
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <div>
+                <div class="label">Applied</div>
+                <div class="gold value">{len(ipo_year)}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotted</div>
+                <div class="gold value">0</div>
+            </div>
         </div>
+
     </div>
+    """
 
-    <div style="display:flex; justify-content:space-between; margin-top:15px;">
-        <div>
-            <div class="label">Applied</div>
-            <div class="gold value">{len(ipo_year)}</div>
-        </div>
-
-        <div>
-            <div class="label">Allotted</div>
-            <div class="gold value">0</div>
-        </div>
-    </div>
-
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(html, unsafe_allow_html=True)
 
     # =========================
     # MONTHLY (NOW FULL WIDTH ✅)
