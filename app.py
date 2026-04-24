@@ -6,24 +6,17 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 EXACT UI STYLE
+# 🎨 UI STYLE (UNCHANGED)
 # =========================
 st.markdown("""
 <style>
+body { background: #0b0f14; color: white; }
 
-/* PAGE */
-body {
-    background: #0b0f14;
-    color: white;
-}
-
-/* SIDEBAR */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0a0f1a, #0b0f14);
     border-right: 1px solid #1f2937;
 }
 
-/* CARDS */
 .card {
     background: #0f172a;
     border: 1px solid #1f2937;
@@ -32,11 +25,7 @@ section[data-testid="stSidebar"] {
     margin-bottom: 12px;
 }
 
-/* TITLES */
-.label {
-    color: #9ca3af;
-    font-size: 14px;
-}
+.label { color: #9ca3af; font-size: 14px; }
 
 .value-gold {
     color: #d4af37;
@@ -44,50 +33,30 @@ section[data-testid="stSidebar"] {
     font-weight: 700;
 }
 
-/* PERSON */
 .person {
     color: #d4af37;
     font-size: 22px;
     font-weight: 700;
 }
 
-/* NUMBERS */
 .value {
     color: #d4af37;
     font-size: 22px;
     font-weight: 600;
 }
 
-.green {
-    color: #22c55e;
-    font-size: 22px;
-    font-weight: 600;
-}
+.green { color: #22c55e; font-size: 22px; font-weight: 600; }
+.red { color: #ef4444; font-size: 22px; font-weight: 600; }
 
-.red {
-    color: #ef4444;
-    font-size: 22px;
-    font-weight: 600;
-}
+.note-green { color: #22c55e; font-size: 13px; }
+.note-red { color: #ef4444; font-size: 13px; }
 
-.note-green {
-    color: #22c55e;
-    font-size: 13px;
-}
-
-.note-red {
-    color: #ef4444;
-    font-size: 13px;
-}
-
-/* DIVIDER */
 hr {
     border: none;
     height: 1px;
     background: #1f2937;
     margin: 10px 0;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -99,7 +68,7 @@ st.title("Smart Budget Dashboard")
 menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 
 # =========================
-# HELPERS (UNCHANGED)
+# HELPERS
 # =========================
 def extract_sheet_id(url):
     if "docs.google.com" in url:
@@ -121,11 +90,12 @@ def preprocess(df):
         "paid by": "paid_by"
     })
 
-    df["date"] = pd.to_datetime(df["date"])
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"])
     df["year"] = df["date"].dt.year
     df["month"] = df["date"].dt.strftime("%B")
     df["month_num"] = df["date"].dt.month
-    return df
+    return df.sort_values(["year", "month_num"])
 
 def find_inhand(cols, person):
     for c in cols:
@@ -175,9 +145,9 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # =========================
+    # -----------------------
     # PAID BY
-    # =========================
+    # -----------------------
     a_spend, h_spend = 0, 0
 
     for _, r in mdf.iterrows():
@@ -191,12 +161,25 @@ if menu == "Dashboard" and not df.empty:
             a_spend += r["amount"]/2
             h_spend += r["amount"]/2
 
+    # -----------------------
+    # IN HAND (FIXED SAFELY)
+    # -----------------------
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
 
-    a_in = year_df[a_col].dropna().iloc[-1] if a_col else 0
-    h_in = year_df[h_col].dropna().iloc[-1] if h_col else 0
+    a_in = 0
+    h_in = 0
+
+    if a_col:
+        vals = year_df[a_col].dropna()
+        if not vals.empty:
+            a_in = vals.iloc[-1]
+
+    if h_col:
+        vals = year_df[h_col].dropna()
+        if not vals.empty:
+            h_in = vals.iloc[-1]
 
     a_save = a_in - a_spend
     h_save = h_in - h_spend
@@ -240,9 +223,9 @@ if menu == "Dashboard" and not df.empty:
     with col2:
         st.markdown(person_card("Harshita", h_in, h_spend, h_save), unsafe_allow_html=True)
 
-    # =========================
+    # -----------------------
     # IPO
-    # =========================
+    # -----------------------
     ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
     st.markdown(f"""
@@ -253,21 +236,22 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # =========================
-    # BAR CHART (UNCHANGED)
-    # =========================
+    # -----------------------
+    # BAR CHART
+    # -----------------------
     cat = mdf.groupby("category")["amount"].sum().reset_index()
 
-    total = cat["amount"].sum()
-    cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)", axis=1)
+    if not cat.empty:
+        total = cat["amount"].sum()
+        cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)", axis=1)
 
-    fig = px.bar(cat, x="category", y="amount", text="label")
-    fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
-    st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(cat, x="category", y="amount", text="label")
+        fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
+        st.plotly_chart(fig, use_container_width=True)
 
-    # =========================
-    # DONUT WITH SIDE LEGEND
-    # =========================
+    # -----------------------
+    # DONUT
+    # -----------------------
     others = mdf[mdf["category"].str.lower() == "others"]
 
     if not others.empty:
@@ -281,10 +265,7 @@ if menu == "Dashboard" and not df.empty:
                 values=grp["amount"],
                 hole=0.6
             )])
-            fig.update_layout(
-                paper_bgcolor="#0b0f14",
-                font=dict(color="white")
-            )
+            fig.update_layout(paper_bgcolor="#0b0f14", font=dict(color="white"))
             st.plotly_chart(fig, use_container_width=True)
 
         with col2:
