@@ -124,11 +124,12 @@ if menu == "Dashboard" and not df.empty:
         """, unsafe_allow_html=True)
 
     # =========================
-    # IPO SUMMARY (FULL WIDTH)
-    # =========================
-    ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+# IPO SUMMARY (FIXED)
+# =========================
+ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
 
-    st.markdown(f"""
+st.markdown(
+    f"""
     <div class="block">
 
         <div class="gold">YEARLY IPO SUMMARY</div>
@@ -158,7 +159,9 @@ if menu == "Dashboard" and not df.empty:
         </div>
 
     </div>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True   
+)
 
     # =========================
     # MONTHLY
