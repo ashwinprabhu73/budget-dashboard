@@ -3,6 +3,71 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+def render_expense_chart(mdf, df):
+    import plotly.express as px
+    import pandas as pd
+
+    st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
+
+    rec_col = None
+    for c in df.columns:
+        if "recurring" in c.lower():
+            rec_col = c
+            break
+
+    mdf["type"] = "Lumpsum"
+
+    if rec_col:
+        mdf["type"] = mdf[rec_col].apply(
+            lambda x: "Recurring" if str(x).strip().lower() == "recurring" else "Lumpsum"
+        )
+
+    investment_df = mdf[mdf["category"].str.lower() == "investment"]
+    other_df = mdf[mdf["category"].str.lower() != "investment"]
+
+    inv_group = investment_df.groupby(["category", "type"])["amount"].sum().reset_index()
+
+    other_group = other_df.groupby("category")["amount"].sum().reset_index()
+    other_group["type"] = "Other"
+
+    final_df = pd.concat([inv_group, other_group], ignore_index=True)
+
+    fig = px.bar(
+        final_df,
+        x="category",
+        y="amount",
+        color="type",
+        barmode="stack",
+        text="amount"
+    )
+
+    fig.update_traces(
+        texttemplate='₹%{text:,.0f}',
+        textposition='outside'
+    )
+
+    color_map = {
+        "Recurring": "#3b82f6",
+        "Lumpsum": "#d4af37",
+        "Other": "#d4af37"
+    }
+
+    fig.for_each_trace(lambda t: t.update(
+        marker_color=color_map.get(t.name, "#d4af37")
+    ))
+
+    fig.update_layout(
+        plot_bgcolor="#0b0f14",
+        paper_bgcolor="#0b0f14",
+        font=dict(color="white"),
+        xaxis=dict(title=None, tickfont=dict(color="#cbd5e1")),
+        yaxis=dict(showgrid=False, showticklabels=False),
+        uniformtext_minsize=10,
+        uniformtext_mode='hide'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
 st.set_page_config(layout="wide")
 
 # =========================
@@ -293,51 +358,8 @@ if menu == "Dashboard" and not df.empty:
     render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
 
-
-    st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
-
-    rec_col = None
-    for c in df.columns:
-        if "recurring" in c.lower():
-            rec_col = c
-            break
-
-    mdf["type"] = "Lumpsum"
-
-    if rec_col:
-        mdf["type"] = mdf[rec_col].apply(
-            lambda x: "Recurring" if str(x).strip().lower() == "recurring" else "Lumpsum"
-        )
-
-    cat_split = mdf.groupby(["category", "type"])["amount"].sum().reset_index()
-
-    fig = px.bar(
-        cat_split,
-        x="category",
-        y="amount",
-        color="type",
-        text="amount",
-        barmode="stack"
-    )
-
-    fig.update_traces(
-    texttemplate='₹%{text:,.0f}',
-    textposition='outside'
-    )
-
-    fig.for_each_trace(lambda t: t.update(
-        marker_color="#3b82f6" if t.name == "Recurring" else "#d4af37"
-    ))
-
-    fig.update_layout(
-        plot_bgcolor="#0b0f14",
-        paper_bgcolor="#0b0f14",
-        font=dict(color="white"),
-        xaxis=dict(title=None, tickfont=dict(color="#cbd5e1")),
-        yaxis=dict(showgrid=False, showticklabels=False)
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
+    render_expense_chart(mdf, df)
+    
 
     # =========================
     # OTHER EXPENSES (THIS MUST ALIGN)
