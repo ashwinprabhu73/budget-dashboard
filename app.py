@@ -123,7 +123,14 @@ if sheet:
 # =========================
 if menu == "Dashboard" and not df.empty:
 
-    year = st.selectbox("Select Year", sorted(df["year"].unique()))
+    years = sorted(df["year"].unique())
+default_year = max(years)
+
+year = st.selectbox(
+    "Select Year",
+    years,
+    index=years.index(default_year)
+)
     year_df = df[df["year"] == year]
 
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
@@ -137,7 +144,17 @@ if menu == "Dashboard" and not df.empty:
 </div>
 """, unsafe_allow_html=True)
 
-    month = st.selectbox("Select Month", year_df.sort_values("month_num")["month"].unique())
+    months_df = year_df.sort_values("month_num")
+months = months_df["month"].unique()
+
+# latest month based on data
+latest_month = months_df.iloc[-1]["month"]
+
+month = st.selectbox(
+    "Select Month",
+    months,
+    index=list(months).index(latest_month)
+)
 
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
