@@ -295,37 +295,76 @@ if menu == "Dashboard" and not df.empty:
 
 
     # =========================
-    # EXPENSE BREAKDOWN
-    # =========================
-    st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
+# EXPENSE BREAKDOWN (STACKED: RECURRING vs LUMPSUM)
+# =========================
+st.markdown("<h3 style='color:#d4af37;'>Expense Breakdown</h3>", unsafe_allow_html=True)
 
-    cat = mdf.groupby("category")["amount"].sum().reset_index()
+# ---------- Detect recurring column ----------
+rec_col = None
+for c in df.columns:
+    if "recurring" in c.lower():
+        rec_col = c
+        break
 
-    if not cat.empty:
-        total = cat["amount"].sum()
+# ---------- Create type column ----------
+mdf["type"] = "Lumpsum"
 
-        cat["label"] = cat.apply(
-            lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)",
-            axis=1
-        )
+if rec_col:
+    mdf["type"] = mdf[rec_col].apply(
+        lambda x: "Recurring" if str(x).strip().lower() == "recurring" else "Lumpsum"
+    )
 
-        fig = px.bar(cat, x="category", y="amount", text="label")
+# ---------- Group data ----------
+cat_split = mdf.groupby(["category", "type"])["amount"].sum().reset_index()
 
-        fig.update_traces(
-            marker_color="#d4af37",
-            textposition="outside",
-            textfont=dict(color="white", size=12)
-        )
+# ---------- Create stacked bar ----------
+fig = px.bar(
+    cat_split,
+    x="category",
+    y="amount",
+    color="type",
+    text="amount",
+    barmode="stack"
+)
 
-        fig.update_layout(
-            plot_bgcolor="#0b0f14",
-            paper_bgcolor="#0b0f14",
-            yaxis=dict(showgrid=False, showticklabels=False),
-            xaxis=dict(title=None, tickfont=dict(color="#cbd5e1")),
-            font=dict(color="white")
-        )
+# ---------- Format text ----------
+fig.update_traces(
+    texttemplate='₹%{text:,.0f}',
+    textposition='inside'
+)
 
-        st.plotly_chart(fig, use_container_width=True)
+# ---------- Apply custom colors ----------
+fig.for_each_trace(lambda t: t.update(
+    marker_color="#3b82f6" if t.name == "Recurring" else "#d4af37"
+))
+
+# ---------- Layout styling ----------
+fig.update_layout(
+    plot_bgcolor="#0b0f14",
+    paper_bgcolor="#0b0f14",
+    font=dict(color="white"),
+
+    xaxis=dict(
+        title=None,
+        tickfont=dict(color="#cbd5e1")
+    ),
+
+    yaxis=dict(
+        showgrid=False,
+        showticklabels=False
+    ),
+
+    legend=dict(
+        title=None,
+        orientation="h",
+        y=1.1,
+        x=0.5,
+        xanchor="center"
+    )
+)
+
+# ---------- Render ----------
+st.plotly_chart(fig, use_container_width=True)
 
     # =========================
     # OTHER EXPENSES
