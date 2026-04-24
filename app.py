@@ -7,65 +7,31 @@ from streamlit.components.v1 import html
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 GLOBAL STYLES (REFINED UI)
+# 🎨 UI STYLES
 # =========================
 st.markdown("""
 <style>
-html, body, [data-testid="stAppViewContainer"] {
-    background-color: #0b0f14;
-}
-
-[data-testid="stSidebar"] {
-    background: #0a0f1a;
-}
-
-h1 {
-    color: #e5e7eb !important;
-    font-size: 42px !important;
-    font-weight: 700;
-}
-
-div[data-baseweb="select"] > div {
-    background-color: #111827 !important;
-    color: #cbd5e1 !important;
-    border-radius: 10px !important;
-    border: 1px solid #1f2937 !important;
-}
+html, body, [data-testid="stAppViewContainer"] { background-color: #0b0f14; }
+[data-testid="stSidebar"] { background: #0a0f1a; }
 
 .block {
-    background: linear-gradient(145deg, #111827, #0b1220);
-    padding: 20px;
-    border-radius: 14px;
+    background: #111827;
+    padding: 18px;
+    border-radius: 12px;
     border: 1px solid #1f2937;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
-.section-title {
-    font-size: 20px;
-    color: #60a5fa;
-    margin-top: 25px;
-    margin-bottom: 10px;
-}
-
-.label {
-    color: #9ca3af;
-    font-size: 13px;
-}
-
-.value {
-    font-size: 26px;
-    font-weight: 600;
-}
-
-.gold { color: #d4af37; }
+.gold { color: #d4af37; font-weight: bold; }
+.value { font-size: 26px; }
+.label { color: #9ca3af; font-size: 13px; }
 .green { color: #22c55e; }
 .red { color: #ef4444; }
 
-.person-name {
-    font-size: 18px;
-    font-weight: 600;
-    color: #f3f4f6;
-    margin-bottom: 10px;
+.section-title {
+    color: #60a5fa;
+    font-size: 20px;
+    margin-top: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -98,18 +64,18 @@ def preprocess(df):
     df["year"] = df["date"].dt.year
     df["month"] = df["date"].dt.strftime("%B")
     df["month_num"] = df["date"].dt.month
-    return df.sort_values(["year", "month_num"])
+    return df
 
-def find_inhand(cols, person):
+def find_inhand(cols, name):
     for c in cols:
-        if person in c.lower() and "hand" in c.lower():
+        if name in c.lower() and "hand" in c.lower():
             return c
     return None
 
 # =========================
 # DATA
 # =========================
-sheet = st.sidebar.text_input("Paste Google Sheet URL/ID")
+sheet = st.sidebar.text_input("Paste Sheet URL")
 df = pd.DataFrame()
 
 if sheet:
@@ -129,13 +95,18 @@ if menu == "Dashboard" and not df.empty:
     months = year_df.sort_values("month_num")["month"].unique()
     month = st.selectbox("Select Month", months, index=len(months)-1)
 
+    # FILTER
     expense_df = year_df[year_df["category"] != "ipo"]
 
+    # =========================
     # YEARLY
+    # =========================
     total_year = expense_df["amount"].sum()
     st.markdown(f"<div class='block'><div class='label'>Total Yearly Spend</div><div class='gold value'>₹{total_year:,.0f}</div></div>", unsafe_allow_html=True)
 
+    # =========================
     # IPO
+    # =========================
     ipo_year = year_df[year_df["category"] == "ipo"]
 
     html(f"""
@@ -144,37 +115,32 @@ if menu == "Dashboard" and not df.empty:
         <div style="display:flex;justify-content:space-between;margin-top:15px;">
             <div>
                 <div style="color:#9ca3af;">Total Amount Utilised</div>
-                <div style="color:#d4af37;font-size:26px;font-weight:bold;">₹{ipo_year['amount'].sum():,.0f}</div>
+                <div style="color:#d4af37;font-size:24px;">₹{ipo_year['amount'].sum():,.0f}</div>
             </div>
-            <div>
-                <div style="color:#9ca3af;">Allotment Profit</div>
-                <div style="color:#d4af37;font-size:26px;font-weight:bold;">₹0</div>
-            </div>
-        </div>
-        <div style="display:flex;justify-content:space-between;margin-top:20px;">
             <div>
                 <div style="color:#9ca3af;">Applied</div>
-                <div style="color:#d4af37;font-size:26px;font-weight:bold;">{len(ipo_year)}</div>
-            </div>
-            <div>
-                <div style="color:#9ca3af;">Allotted</div>
-                <div style="color:#d4af37;font-size:26px;font-weight:bold;">0</div>
+                <div style="color:#d4af37;font-size:24px;">{len(ipo_year)}</div>
             </div>
         </div>
     </div>
-    """, height=220)
+    """, height=200)
 
+    # =========================
     # MONTHLY
+    # =========================
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
 
-    st.markdown(f"<div class='block'><div class='label'>{month} Monthly Spend</div><div class='gold value'>₹{monthly_total:,.0f}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='block'><div class='label'>{month} Spend</div><div class='gold value'>₹{monthly_total:,.0f}</div></div>", unsafe_allow_html=True)
 
-    # PERSON LOGIC
+    # =========================
+    # PERSON CARDS (RESTORED)
+    # =========================
     a_spend = h_spend = 0
     for _, r in mdf.iterrows():
         p = str(r.get("paid_by", "")).lower()
         amt = r["amount"]
+
         if p == "ashwin":
             a_spend += amt
         elif p == "harshita":
@@ -183,44 +149,74 @@ if menu == "Dashboard" and not df.empty:
             a_spend += amt/2
             h_spend += amt/2
 
+    cols = df.columns
+    a_in = year_df[find_inhand(cols, "ashwin")].dropna().iloc[-1]
+    h_in = year_df[find_inhand(cols, "harshita")].dropna().iloc[-1]
+
     col1, col2 = st.columns(2)
 
-    def render_person(name, spend, col):
+    def card(name, income, spend, col):
+        save = income - spend
+        color = "green" if save >= 0 else "red"
+
         with col:
             st.markdown(f"""
             <div class="block">
-                <div class="person-name">{name}</div>
+                <div class="gold">{name}</div>
+                <div class="label">In Hand</div>
+                <div class="gold value">₹{income:,.0f}</div>
+
                 <div class="label">Spent</div>
                 <div class="gold value">₹{spend:,.0f}</div>
+
+                <div class="label">Savings</div>
+                <div class="{color} value">₹{save:,.0f}</div>
             </div>
             """, unsafe_allow_html=True)
 
-    render_person("Ashwin", a_spend, col1)
-    render_person("Harshita", h_spend, col2)
+    card("Ashwin", a_in, a_spend, col1)
+    card("Harshita", h_in, h_spend, col2)
 
-    # EXPENSE BREAKDOWN
-    st.markdown('<div class="section-title">Expense Breakdown</div>', unsafe_allow_html=True)
+    # =========================
+    # EXPENSE BREAKDOWN (RESTORED)
+    # =========================
+    st.markdown("<div class='section-title'>Expense Breakdown</div>", unsafe_allow_html=True)
 
     cat = mdf.groupby("category")["amount"].sum().reset_index()
-    fig = px.bar(cat, x="category", y="amount")
 
-    fig.update_layout(
-        plot_bgcolor="#0b0f14",
-        paper_bgcolor="#0b0f14",
-        font=dict(color="white")
-    )
+    if not cat.empty:
+        total = cat["amount"].sum()
+        cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)", axis=1)
 
-    st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(cat, x="category", y="amount", text="label")
 
-    # OTHER
+        fig.update_traces(marker_color="#d4af37", textposition="outside")
+
+        fig.update_layout(
+            plot_bgcolor="#0b0f14",
+            paper_bgcolor="#0b0f14",
+            font=dict(color="white"),
+            yaxis=dict(showgrid=False, showticklabels=False)
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    # =========================
+    # OTHER EXPENSES (RESTORED)
+    # =========================
     others = mdf[mdf["category"] == "others"]
 
     if not others.empty:
-        st.markdown('<div class="section-title">Other Expenses</div>', unsafe_allow_html=True)
+        st.markdown("<div class='section-title'>Other Expenses</div>", unsafe_allow_html=True)
 
         grp = others.groupby("description")["amount"].sum().reset_index()
 
-        fig = go.Figure(data=[go.Pie(labels=grp["description"], values=grp["amount"], hole=0.6)])
+        fig = go.Figure(data=[go.Pie(
+            labels=grp["description"],
+            values=grp["amount"],
+            hole=0.6
+        )])
+
         st.plotly_chart(fig, use_container_width=True)
 
 # =========================
