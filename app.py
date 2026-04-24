@@ -112,17 +112,17 @@ if menu == "Dashboard" and not df.empty:
     total_year = expense_df["amount"].sum()
 
     # ===== YEARLY + IPO SIDE BY SIDE =====
-col_y1, col_y2 = st.columns([1,1])
+    col_y1, col_y2 = st.columns([1,1])
 
-# Yearly Spend
-with col_y1:
-    st.markdown(f"""
-    <div class="block">
-    <div class="gold">TOTAL YEARLY SPEND</div>
-    <div class="label">Amount</div>
-    <div class="gold value">₹{total_year:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Yearly Spend
+    with col_y1:
+      st.markdown(f"""
+      <div class="block">
+      <div class="gold">TOTAL YEARLY SPEND</div>
+      <div class="label">Amount</div>
+      <div class="gold value">₹{total_year:,.0f}</div>
+      </div>
+      """, unsafe_allow_html=True)
 
 # =========================
 # IPO SUMMARY (FULL WIDTH)
