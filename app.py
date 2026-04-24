@@ -20,7 +20,6 @@ section[data-testid="stSidebar"] {
     color: #ffffff;
 }
 
-/* CARDS */
 .premium-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
@@ -129,7 +128,6 @@ if menu == "Dashboard" and not df.empty:
 
     yearly_total = expense_df["amount"].sum()
 
-    # YEARLY
     st.markdown(f"""
     <div class="premium-card">
         <div class="caption">Total Yearly Spend</div>
@@ -137,7 +135,6 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # MONTH
     months = year_df.sort_values("month_num")["month"].unique()
     selected_month = st.selectbox("Select Month", months, index=len(months)-1)
 
@@ -151,16 +148,12 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # -----------------------
-    # PAID BY + IN HAND + SAVINGS
-    # -----------------------
-    ashwin_spend = 0
-    harshita_spend = 0
+    # Paid By + In Hand + Savings
+    ashwin_spend, harshita_spend = 0, 0
 
     if "paid_by" in monthly_df.columns:
         for _, row in monthly_df.iterrows():
             payer = str(row["paid_by"]).strip().lower()
-
             if payer == "ashwin":
                 ashwin_spend += row["amount"]
             elif payer == "harshita":
@@ -169,16 +162,8 @@ if menu == "Dashboard" and not df.empty:
                 ashwin_spend += row["amount"] / 2
                 harshita_spend += row["amount"] / 2
 
-    cols = df.columns
-
-    ashwin_inhand = 0
-    harshita_inhand = 0
-
-    if "ashwin in hand" in cols:
-        ashwin_inhand = year_df["ashwin in hand"].dropna().iloc[-1]
-
-    if "harshita in hand" in cols:
-        harshita_inhand = year_df["harshita in hand"].dropna().iloc[-1]
+    ashwin_inhand = year_df["ashwin in hand"].dropna().iloc[-1] if "ashwin in hand" in df.columns else 0
+    harshita_inhand = year_df["harshita in hand"].dropna().iloc[-1] if "harshita in hand" in df.columns else 0
 
     ashwin_savings = ashwin_inhand - ashwin_spend
     harshita_savings = harshita_inhand - harshita_spend
@@ -215,7 +200,6 @@ if menu == "Dashboard" and not df.empty:
 
     # IPO
     ipo_month = ipo_df[ipo_df["month"] == selected_month]
-
     st.markdown(f"""
     <div class="gold-card">
         <div class="caption">IPO SUMMARY</div>
@@ -226,32 +210,55 @@ if menu == "Dashboard" and not df.empty:
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # -----------------------
-    # CATEGORY CHART (FIXED)
-    # -----------------------
+    # Category chart
     cat = monthly_df.groupby("category")["amount"].sum().reset_index()
-
     if not cat.empty:
         total = cat["amount"].sum()
         cat["percent"] = (cat["amount"] / total) * 100
-        cat["label"] = cat.apply(
-            lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1
-        )
+        cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1)
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-
-        fig.update_traces(textposition="outside", textfont=dict(size=14, color="white"))
-        fig.update_layout(
-            yaxis=dict(visible=False),
-            plot_bgcolor="#0a0a0c",
-            paper_bgcolor="#0a0a0c",
-            font=dict(color="white")
-        )
-
+        fig.update_traces(textposition="outside")
+        fig.update_layout(plot_bgcolor="#0a0a0c", paper_bgcolor="#0a0a0c", font=dict(color="white"))
         st.plotly_chart(fig, use_container_width=True)
 
+    # Others donut
+    others_data = monthly_df[monthly_df["category"].str.lower() == "others"]
+    if not others_data.empty:
+        others_group = others_data.groupby("description")["amount"].sum().reset_index()
+        fig2 = px.pie(others_group, names="description", values="amount", hole=0.5)
+        fig2.update_layout(plot_bgcolor="#0a0a0c", paper_bgcolor="#0a0a0c", font=dict(color="white"))
+        st.plotly_chart(fig2, use_container_width=True)
+
 # =======================
-# COMPARE
+# COMPARE (RESTORED)
 # =======================
 elif menu == "Compare" and not df.empty:
-    st.write("Compare unchanged ✅")
+
+    col1, col2 = st.columns(2)
+
+    y1 = col1.selectbox("Year 1", sorted(df["year"].unique()))
+    y2 = col2.selectbox("Year 2", sorted(df["year"].unique()))
+
+    m1 = col1.selectbox("Month 1", df[df["year"] == y1]["month"].unique())
+    m2 = col2.selectbox("Month 2", df[df["year"] == y2]["month"].unique())
+
+    df1 = df[(df["year"] == y1) & (df["month"] == m1)]
+    df2 = df[(df["year"] == y2) & (df["month"] == m2)]
+
+    df1 = df1[df1["category"].str.lower() != "ipo"]
+    df2 = df2[df2["category"].str.lower() != "ipo"]
+
+    compare = pd.DataFrame({
+        f"{m1}-{y1}": df1.groupby("category")["amount"].sum(),
+        f"{m2}-{y2}": df2.groupby("category")["amount"].sum()
+    }).fillna(0)
+
+    compare["total"] = compare.sum(axis=1)
+    compare = compare.sort_values(by="total", ascending=False).head(10).drop(columns=["total"]).reset_index()
+
+    melted = compare.melt(id_vars="category", var_name="Month", value_name="amount")
+
+    fig = px.bar(melted, x="category", y="amount", color="Month", barmode="group")
+    fig.update_layout(plot_bgcolor="#0a0a0c", paper_bgcolor="#0a0a0c", font=dict(color="white"))
+    st.plotly_chart(fig, use_container_width=True)
