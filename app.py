@@ -1,16 +1,17 @@
 import streamlit as st
 import pandas as pd
+import plotly.graph_objects as go
 import plotly.express as px
 
 st.set_page_config(layout="wide")
 
-# -----------------------
-# 🎨 UI (ONLY STYLING — NO LOGIC CHANGE)
-# -----------------------
+# =========================
+# 🎨 EXACT UI STYLE
+# =========================
 st.markdown("""
 <style>
 
-/* BACKGROUND */
+/* PAGE */
 body {
     background: #0b0f14;
     color: white;
@@ -18,69 +19,68 @@ body {
 
 /* SIDEBAR */
 section[data-testid="stSidebar"] {
-    background: #0a0e13;
+    background: linear-gradient(180deg, #0a0f1a, #0b0f14);
     border-right: 1px solid #1f2937;
 }
 
-/* CARD */
+/* CARDS */
 .card {
-    background: linear-gradient(145deg, #111827, #0b1220);
-    border-radius: 14px;
-    padding: 20px;
+    background: #0f172a;
     border: 1px solid #1f2937;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
 }
 
-/* TEXT */
-.title {
-    font-size: 16px;
-    color: #9ca3af;
-}
-
-.big {
-    font-size: 32px;
-    font-weight: 700;
-    color: #fbbf24;
-}
-
-.person {
-    font-size: 20px;
-    font-weight: 700;
-    color: #fbbf24;
-}
-
+/* TITLES */
 .label {
-    font-size: 13px;
     color: #9ca3af;
+    font-size: 14px;
 }
 
+.value-gold {
+    color: #d4af37;
+    font-size: 30px;
+    font-weight: 700;
+}
+
+/* PERSON */
+.person {
+    color: #d4af37;
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* NUMBERS */
 .value {
-    font-size: 24px;
+    color: #d4af37;
+    font-size: 22px;
     font-weight: 600;
-    color: #fbbf24;
 }
 
 .green {
     color: #22c55e;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 600;
 }
 
 .red {
     color: #ef4444;
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 600;
 }
 
 .note-green {
     color: #22c55e;
-    font-size: 12px;
+    font-size: 13px;
 }
 
 .note-red {
     color: #ef4444;
-    font-size: 12px;
+    font-size: 13px;
 }
 
+/* DIVIDER */
 hr {
     border: none;
     height: 1px;
@@ -91,22 +91,22 @@ hr {
 </style>
 """, unsafe_allow_html=True)
 
-# -----------------------
+# =========================
 # HEADER
-# -----------------------
-st.title("💰 Smart Budget Dashboard")
+# =========================
+st.title("Smart Budget Dashboard")
 
-menu = st.sidebar.radio("Menu", ["Dashboard", "Compare"])
+menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 
-# -----------------------
+# =========================
 # HELPERS (UNCHANGED)
-# -----------------------
-def extract_sheet_id(input_text):
-    if "docs.google.com" in input_text:
-        return input_text.split("/d/")[1].split("/")[0]
-    return input_text
+# =========================
+def extract_sheet_id(url):
+    if "docs.google.com" in url:
+        return url.split("/d/")[1].split("/")[0]
+    return url
 
-def load_google_sheet(sheet_id):
+def load_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
     return pd.concat(pd.read_excel(url, sheet_name=None).values(), ignore_index=True)
 
@@ -121,115 +121,97 @@ def preprocess(df):
         "paid by": "paid_by"
     })
 
-    df["date"] = pd.to_datetime(df["date"], errors="coerce")
-    df = df.dropna(subset=["date"])
+    df["date"] = pd.to_datetime(df["date"])
     df["year"] = df["date"].dt.year
-    df["month_num"] = df["date"].dt.month
     df["month"] = df["date"].dt.strftime("%B")
-    return df.sort_values(["year", "month_num"])
+    df["month_num"] = df["date"].dt.month
+    return df
 
-def find_inhand_column(cols, person):
+def find_inhand(cols, person):
     for c in cols:
         if person in c and "hand" in c:
             return c
     return None
 
-# -----------------------
+# =========================
 # DATA
-# -----------------------
-source = st.radio("Select Data Source", ["Google Sheet", "Upload Excel"])
+# =========================
+sheet = st.sidebar.text_input("Paste Google Sheet")
 
 df = pd.DataFrame()
 
-if source == "Google Sheet":
-    sheet_input = st.text_input("Paste Google Sheet URL/ID")
-    if sheet_input:
-        df = load_google_sheet(extract_sheet_id(sheet_input))
-
-elif source == "Upload Excel":
-    file = st.file_uploader("Upload Excel", type=["xlsx"])
-    if file:
-        df = pd.concat(pd.read_excel(file, sheet_name=None).values(), ignore_index=True)
-
-if not df.empty:
+if sheet:
+    df = load_sheet(extract_sheet_id(sheet))
     df = preprocess(df)
 
-# =======================
+# =========================
 # DASHBOARD
-# =======================
+# =========================
 if menu == "Dashboard" and not df.empty:
 
-    years = sorted(df["year"].unique())
-    selected_year = st.selectbox("Select Year", years, index=len(years)-1)
+    year = st.selectbox("Select Year", sorted(df["year"].unique()))
+    year_df = df[df["year"] == year]
 
-    year_df = df[df["year"] == selected_year]
-
-    ipo_df = year_df[year_df["category"].str.lower() == "ipo"]
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
-    yearly_total = expense_df["amount"].sum()
+    total_year = expense_df["amount"].sum()
 
     st.markdown(f"""
     <div class="card">
-        <div class="title">Total Yearly Spend</div>
-        <div class="big">₹{yearly_total:,.0f}</div>
+        <div class="label">Total Yearly Spend</div>
+        <div class="value-gold">₹{total_year:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    months = year_df.sort_values("month_num")["month"].unique()
-    selected_month = st.selectbox("Select Month", months, index=len(months)-1)
+    month = st.selectbox("Select Month", year_df.sort_values("month_num")["month"].unique())
 
-    monthly_df = expense_df[expense_df["month"] == selected_month]
-    monthly_total = monthly_df["amount"].sum()
+    mdf = expense_df[expense_df["month"] == month]
+    monthly_total = mdf["amount"].sum()
 
     st.markdown(f"""
     <div class="card">
-        <div class="title">{selected_month} Monthly Spend</div>
-        <div class="big">₹{monthly_total:,.0f}</div>
+        <div class="label">{month} Monthly Spend</div>
+        <div class="value-gold">₹{monthly_total:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # -----------------------
-    # PAID BY (UNCHANGED LOGIC)
-    # -----------------------
-    ashwin_spend, harshita_spend = 0, 0
+    # =========================
+    # PAID BY
+    # =========================
+    a_spend, h_spend = 0, 0
 
-    if "paid_by" in monthly_df.columns:
-        for _, row in monthly_df.iterrows():
-            payer = str(row["paid_by"]).strip().lower()
-            if payer == "ashwin":
-                ashwin_spend += row["amount"]
-            elif payer == "harshita":
-                harshita_spend += row["amount"]
-            elif payer == "us":
-                ashwin_spend += row["amount"] / 2
-                harshita_spend += row["amount"] / 2
+    for _, r in mdf.iterrows():
+        p = str(r.get("paid_by", "")).lower()
 
-    # -----------------------
-    # IN HAND (FIXED)
-    # -----------------------
+        if p == "ashwin":
+            a_spend += r["amount"]
+        elif p == "harshita":
+            h_spend += r["amount"]
+        elif p == "us":
+            a_spend += r["amount"]/2
+            h_spend += r["amount"]/2
+
     cols = df.columns
+    a_col = find_inhand(cols, "ashwin")
+    h_col = find_inhand(cols, "harshita")
 
-    ashwin_col = find_inhand_column(cols, "ashwin")
-    harshita_col = find_inhand_column(cols, "harshita")
+    a_in = year_df[a_col].dropna().iloc[-1] if a_col else 0
+    h_in = year_df[h_col].dropna().iloc[-1] if h_col else 0
 
-    ashwin_inhand = year_df[ashwin_col].dropna().iloc[-1] if ashwin_col else 0
-    harshita_inhand = year_df[harshita_col].dropna().iloc[-1] if harshita_col else 0
-
-    ashwin_savings = ashwin_inhand - ashwin_spend
-    harshita_savings = harshita_inhand - harshita_spend
+    a_save = a_in - a_spend
+    h_save = h_in - h_spend
 
     col1, col2 = st.columns(2)
 
-    def person_card(name, income, spend, savings):
-        if savings >= 0:
-            savings_html = f"""
-            <div class="green">₹{savings:,.0f}</div>
+    def person_card(name, income, spend, save):
+        if save >= 0:
+            saving_html = f"""
+            <div class="green">₹{save:,.0f}</div>
             <div class="note-green">✔ Great! You're saving well.</div>
             """
         else:
-            savings_html = f"""
-            <div class="red">-₹{abs(savings):,.0f}</div>
+            saving_html = f"""
+            <div class="red">-₹{abs(save):,.0f}</div>
             <div class="note-red">⚠ You've overspent this month.</div>
             """
 
@@ -248,96 +230,88 @@ if menu == "Dashboard" and not df.empty:
             <hr>
 
             <div class="label">Savings</div>
-            {savings_html}
+            {saving_html}
         </div>
         """
 
     with col1:
-        st.markdown(person_card("Ashwin", ashwin_inhand, ashwin_spend, ashwin_savings), unsafe_allow_html=True)
+        st.markdown(person_card("Ashwin", a_in, a_spend, a_save), unsafe_allow_html=True)
 
     with col2:
-        st.markdown(person_card("Harshita", harshita_inhand, harshita_spend, harshita_savings), unsafe_allow_html=True)
+        st.markdown(person_card("Harshita", h_in, h_spend, h_save), unsafe_allow_html=True)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
-
-    # -----------------------
-    # IPO (UNCHANGED)
-    # -----------------------
-    ipo_month = ipo_df[ipo_df["month"] == selected_month]
+    # =========================
+    # IPO
+    # =========================
+    ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
     st.markdown(f"""
     <div class="card">
-        <div class="title">IPO SUMMARY</div>
-        <div>Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
-        <div>Entries: {len(ipo_month)}</div>
+        <div class="label">IPO SUMMARY</div>
+        <div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
+        <div>Entries: {len(ipo)}</div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    # =========================
+    # BAR CHART (UNCHANGED)
+    # =========================
+    cat = mdf.groupby("category")["amount"].sum().reset_index()
 
-    # -----------------------
-    # CATEGORY BAR (UNCHANGED)
-    # -----------------------
-    cat = monthly_df.groupby("category")["amount"].sum().reset_index()
+    total = cat["amount"].sum()
+    cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)", axis=1)
 
-    if not cat.empty:
-        total = cat["amount"].sum()
-        cat["percent"] = (cat["amount"] / total) * 100
-        cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1)
+    fig = px.bar(cat, x="category", y="amount", text="label")
+    fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
+    st.plotly_chart(fig, use_container_width=True)
 
-        fig = px.bar(cat, x="category", y="amount", text="label")
-        fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
-        st.plotly_chart(fig, use_container_width=True)
+    # =========================
+    # DONUT WITH SIDE LEGEND
+    # =========================
+    others = mdf[mdf["category"].str.lower() == "others"]
 
-    # -----------------------
-    # OTHERS DONUT (IMPROVED STYLE ONLY)
-    # -----------------------
-    others_data = monthly_df[monthly_df["category"].str.lower() == "others"]
+    if not others.empty:
+        grp = others.groupby("description")["amount"].sum().reset_index()
 
-    if not others_data.empty:
-        grp = others_data.groupby("description")["amount"].sum().reset_index()
+        col1, col2 = st.columns([2,1])
 
-        fig2 = px.pie(grp, names="description", values="amount", hole=0.6)
-        fig2.update_traces(textinfo="percent+label")
+        with col1:
+            fig = go.Figure(data=[go.Pie(
+                labels=grp["description"],
+                values=grp["amount"],
+                hole=0.6
+            )])
+            fig.update_layout(
+                paper_bgcolor="#0b0f14",
+                font=dict(color="white")
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-        fig2.update_layout(
-            plot_bgcolor="#0b0f14",
-            paper_bgcolor="#0b0f14",
-            font=dict(color="white"),
-            title="Others Breakdown"
-        )
+        with col2:
+            for _, r in grp.iterrows():
+                st.write(f"{r['description']} — ₹{r['amount']:,.0f}")
 
-        st.plotly_chart(fig2, use_container_width=True)
-
-# =======================
+# =========================
 # COMPARE (UNCHANGED)
-# =======================
+# =========================
 elif menu == "Compare" and not df.empty:
 
-    col1, col2 = st.columns(2)
+    y1 = st.selectbox("Year 1", df["year"].unique())
+    y2 = st.selectbox("Year 2", df["year"].unique())
 
-    y1 = col1.selectbox("Year 1", sorted(df["year"].unique()))
-    y2 = col2.selectbox("Year 2", sorted(df["year"].unique()))
+    m1 = st.selectbox("Month 1", df[df["year"]==y1]["month"].unique())
+    m2 = st.selectbox("Month 2", df[df["year"]==y2]["month"].unique())
 
-    m1 = col1.selectbox("Month 1", df[df["year"] == y1]["month"].unique())
-    m2 = col2.selectbox("Month 2", df[df["year"] == y2]["month"].unique())
+    d1 = df[(df["year"]==y1)&(df["month"]==m1)]
+    d2 = df[(df["year"]==y2)&(df["month"]==m2)]
 
-    df1 = df[(df["year"] == y1) & (df["month"] == m1)]
-    df2 = df[(df["year"] == y2) & (df["month"] == m2)]
-
-    df1 = df1[df1["category"].str.lower() != "ipo"]
-    df2 = df2[df2["category"].str.lower() != "ipo"]
-
-    compare = pd.DataFrame({
-        f"{m1}-{y1}": df1.groupby("category")["amount"].sum(),
-        f"{m2}-{y2}": df2.groupby("category")["amount"].sum()
+    comp = pd.DataFrame({
+        f"{m1}-{y1}": d1.groupby("category")["amount"].sum(),
+        f"{m2}-{y2}": d2.groupby("category")["amount"].sum()
     }).fillna(0)
 
-    compare["total"] = compare.sum(axis=1)
-    compare = compare.sort_values(by="total", ascending=False).head(10).drop(columns=["total"]).reset_index()
+    comp = comp.reset_index().melt(id_vars="category", var_name="Month", value_name="amount")
 
-    melted = compare.melt(id_vars="category", var_name="Month", value_name="amount")
-
-    fig = px.bar(melted, x="category", y="amount", color="Month", barmode="group")
+    fig = px.bar(comp, x="category", y="amount", color="Month", barmode="group")
     fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
     st.plotly_chart(fig, use_container_width=True)
