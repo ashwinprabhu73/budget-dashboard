@@ -106,7 +106,14 @@ if menu == "Dashboard" and not df.empty:
     month = st.selectbox("Select Month", months, index=len(months)-1)
 
     year_df = df[df["year"] == year]
-    expense_df = year_df[year_df["type"] == "expense"]
+    # =========================
+    # SAFE EXPENSE FILTER
+    # =========================
+    if "type" in year_df.columns:
+      expense_df = year_df[year_df["type"].str.lower() == "expense"]
+    else:
+    # fallback: assume all are expenses except income/ipo handled separately
+      expense_df = year_df.copy()
 
     # =========================
     # YEARLY SPEND
