@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# -----------------------
-# CONFIG
-# -----------------------
 st.set_page_config(layout="wide")
 
 # -----------------------
@@ -80,7 +77,6 @@ def load_excel(file):
     return pd.concat(pd.read_excel(file, sheet_name=None).values(), ignore_index=True)
 
 def preprocess(df):
-    # 🔥 FIX: normalize column names
     df.columns = df.columns.str.strip().str.lower()
 
     df = df.rename(columns={
@@ -156,40 +152,56 @@ if menu == "Dashboard" and not df.empty:
     """, unsafe_allow_html=True)
 
     # -----------------------
-    # PAID BY (SAFE FIX)
+    # PAID BY + IN HAND + SAVINGS
     # -----------------------
-    ashwin = 0
-    harshita = 0
+    ashwin_spend = 0
+    harshita_spend = 0
 
     if "paid_by" in monthly_df.columns:
         for _, row in monthly_df.iterrows():
             payer = str(row["paid_by"]).strip().lower()
 
             if payer == "ashwin":
-                ashwin += row["amount"]
-
+                ashwin_spend += row["amount"]
             elif payer == "harshita":
-                harshita += row["amount"]
-
+                harshita_spend += row["amount"]
             elif payer == "us":
-                ashwin += row["amount"] / 2
-                harshita += row["amount"] / 2
+                ashwin_spend += row["amount"] / 2
+                harshita_spend += row["amount"] / 2
+
+    cols = {c.lower(): c for c in df.columns}
+
+    ashwin_inhand = year_df[cols["ashwin in hand"]].dropna().iloc[-1] if "ashwin in hand" in cols else 0
+    harshita_inhand = year_df[cols["harshita in hand"]].dropna().iloc[-1] if "harshita in hand" in cols else 0
+
+    ashwin_savings = ashwin_inhand - ashwin_spend
+    harshita_savings = harshita_inhand - harshita_spend
 
     col1, col2 = st.columns(2)
 
     with col1:
         st.markdown(f"""
         <div class="premium-card">
-            <div class="caption">Ashwin Spend</div>
-            <div class="big-number">₹{ashwin:,.0f}</div>
+            <div class="caption">Ashwin</div>
+            <div class="caption">In Hand</div>
+            <div class="big-number">₹{ashwin_inhand:,.0f}</div>
+            <div class="caption">Spent</div>
+            <div>₹{ashwin_spend:,.0f}</div>
+            <div class="caption">Savings</div>
+            <div>₹{ashwin_savings:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"""
         <div class="premium-card">
-            <div class="caption">Harshita Spend</div>
-            <div class="big-number">₹{harshita:,.0f}</div>
+            <div class="caption">Harshita</div>
+            <div class="caption">In Hand</div>
+            <div class="big-number">₹{harshita_inhand:,.0f}</div>
+            <div class="caption">Spent</div>
+            <div>₹{harshita_spend:,.0f}</div>
+            <div class="caption">Savings</div>
+            <div>₹{harshita_savings:,.0f}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -205,6 +217,20 @@ if menu == "Dashboard" and not df.empty:
         <div>Entries: {len(ipo_month)}</div>
     </div>
     """, unsafe_allow_html=True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # CATEGORY CHART
+    cat = monthly_df.groupby("category")["amount"].sum().reset_index()
+
+    if not cat.empty:
+        fig = px.bar(cat, x="category", y="amount")
+        fig.update_layout(
+            plot_bgcolor="#0a0a0c",
+            paper_bgcolor="#0a0a0c",
+            font=dict(color="white")
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 # =======================
 # COMPARE
