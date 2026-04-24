@@ -125,18 +125,38 @@ if menu == "Dashboard" and not df.empty:
         """, unsafe_allow_html=True)
 
     # IPO (YEARLY)
-    ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+with col_y2:
+    st.markdown(f"""
+    <div class="block">
+    
+    <div class="gold">YEARLY IPO SUMMARY</div>
 
-    with col_y2:
-        st.markdown(f"""
-        <div class="block">
-        <div class="gold">IPO SUMMARY</div>
-        <div class="label">Total Investment</div>
-        <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
-        <div class="label">Entries</div>
-        <div class="gold">{len(ipo_year)}</div>
+    <div style="display:flex; justify-content:space-between; margin-top:10px;">
+        <div>
+            <div class="label">Total Amount Utilised</div>
+            <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
         </div>
-        """, unsafe_allow_html=True)
+
+        <div>
+            <div class="label">Allotment Profit</div>
+            <div class="gold value">₹0</div>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; margin-top:15px;">
+        <div>
+            <div class="label">Applied</div>
+            <div class="gold value">{len(ipo_year)}</div>
+        </div>
+
+        <div>
+            <div class="label">Allotted</div>
+            <div class="gold value">0</div>
+        </div>
+    </div>
+
+    </div>
+    """, unsafe_allow_html=True)
 
     # =========================
     # MONTHLY (NOW FULL WIDTH ✅)
