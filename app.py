@@ -124,7 +124,7 @@ if menu == "Dashboard" and not df.empty:
     # =========================
     # IPO (MOVED HERE ✅)
     # =========================
-    ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
+    ipo = year_df[year_df["category"].str.lower() == "ipo"]
 
     st.markdown(f"""
 <div class="block">
