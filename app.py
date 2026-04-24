@@ -124,7 +124,7 @@ if menu == "Dashboard" and not df.empty:
         """, unsafe_allow_html=True)
 
     # =========================
-    # IPO SUMMARY (FIXED)
+    # IPO SUMMARY (FINAL FIX)
     # =========================
     ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
 
