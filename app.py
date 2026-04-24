@@ -42,6 +42,7 @@ div[data-baseweb="select"] > div {
 .value { font-size: 26px; }
 .green { color: #22c55e; font-weight: bold; }
 .red { color: #ef4444; font-weight: bold; }
+.white { color: #ffffff; font-weight: bold; }
 .label { color: #9ca3af; font-size: 14px; }
 </style>
 """, unsafe_allow_html=True)
@@ -152,7 +153,7 @@ if menu == "Dashboard" and not df.empty:
 
 <div style="min-width:200px;">
 <div class="gold value">Amount Utilised</div>
-<div class="gold value">₹{total_amt:,.0f}</div>
+<div class="white value">₹{total_amt:,.0f}</div>
 </div>
 
 <div style="min-width:200px;">
