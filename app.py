@@ -162,7 +162,10 @@ if menu == "Dashboard" and not df.empty:
         """,
         unsafe_allow_html=True
     )
-
+    # =========================
+    # MONTHLY (REQUIRED FIX)
+    # =========================
+    mdf = expense_df[expense_df["month"] == month]
     # =========================
     # INVESTMENT + SPEND LOGIC
     # =========================
