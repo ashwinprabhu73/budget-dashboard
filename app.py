@@ -117,19 +117,6 @@ if menu == "Dashboard" and not df.empty:
 <div class="gold value">₹{total_year:,.0f}</div>
 </div>
 """, unsafe_allow_html=True)
-    # =========================
-# IPO (MOVED HERE)
-# =========================
-ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
-
-st.markdown(f"""
-<div class="block">
-<div class="gold">IPO SUMMARY</div>
-<div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
-<div>Entries: {len(ipo)}</div>
-</div>
-""", unsafe_allow_html=True)
-
 
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
