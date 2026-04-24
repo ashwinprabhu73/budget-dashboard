@@ -6,7 +6,7 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 UI STYLE (UNCHANGED)
+# 🎨 UI STYLE
 # =========================
 st.markdown("""
 <style>
@@ -60,9 +60,6 @@ hr {
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
-# HEADER
-# =========================
 st.title("Smart Budget Dashboard")
 
 menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
@@ -145,9 +142,7 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # -----------------------
-    # PAID BY
-    # -----------------------
+    # Paid by
     a_spend, h_spend = 0, 0
 
     for _, r in mdf.iterrows():
@@ -161,15 +156,12 @@ if menu == "Dashboard" and not df.empty:
             a_spend += r["amount"]/2
             h_spend += r["amount"]/2
 
-    # -----------------------
-    # IN HAND (FIXED SAFELY)
-    # -----------------------
+    # In hand (safe)
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
 
-    a_in = 0
-    h_in = 0
+    a_in, h_in = 0, 0
 
     if a_col:
         vals = year_df[a_col].dropna()
@@ -183,8 +175,6 @@ if menu == "Dashboard" and not df.empty:
 
     a_save = a_in - a_spend
     h_save = h_in - h_spend
-
-    col1, col2 = st.columns(2)
 
     def person_card(name, income, spend, save):
         if save >= 0:
@@ -217,15 +207,15 @@ if menu == "Dashboard" and not df.empty:
         </div>
         """
 
+    col1, col2 = st.columns(2)
+
     with col1:
         st.markdown(person_card("Ashwin", a_in, a_spend, a_save), unsafe_allow_html=True)
 
     with col2:
         st.markdown(person_card("Harshita", h_in, h_spend, h_save), unsafe_allow_html=True)
 
-    # -----------------------
     # IPO
-    # -----------------------
     ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
     st.markdown(f"""
@@ -236,9 +226,7 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # -----------------------
-    # BAR CHART
-    # -----------------------
+    # Bar chart
     cat = mdf.groupby("category")["amount"].sum().reset_index()
 
     if not cat.empty:
@@ -249,31 +237,25 @@ if menu == "Dashboard" and not df.empty:
         fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
         st.plotly_chart(fig, use_container_width=True)
 
-    # -----------------------
-    # DONUT
-    # -----------------------
+    # Donut
     others = mdf[mdf["category"].str.lower() == "others"]
 
     if not others.empty:
         grp = others.groupby("description")["amount"].sum().reset_index()
 
-        col1, col2 = st.columns([2,1])
+        c1, c2 = st.columns([2,1])
 
-        with col1:
-            fig = go.Figure(data=[go.Pie(
-                labels=grp["description"],
-                values=grp["amount"],
-                hole=0.6
-            )])
+        with c1:
+            fig = go.Figure(data=[go.Pie(labels=grp["description"], values=grp["amount"], hole=0.6)])
             fig.update_layout(paper_bgcolor="#0b0f14", font=dict(color="white"))
             st.plotly_chart(fig, use_container_width=True)
 
-        with col2:
+        with c2:
             for _, r in grp.iterrows():
                 st.write(f"{r['description']} — ₹{r['amount']:,.0f}")
 
 # =========================
-# COMPARE (UNCHANGED)
+# COMPARE
 # =========================
 elif menu == "Compare" and not df.empty:
 
