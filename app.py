@@ -6,7 +6,7 @@ import plotly.express as px
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 UI STYLE
+# 🎨 UI STYLE (UNCHANGED)
 # =========================
 st.markdown("""
 <style>
@@ -65,7 +65,7 @@ st.title("Smart Budget Dashboard")
 menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 
 # =========================
-# HELPERS
+# HELPERS (UNCHANGED)
 # =========================
 def extract_sheet_id(url):
     if "docs.google.com" in url:
@@ -142,7 +142,7 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # Paid by
+    # Paid by logic (UNCHANGED)
     a_spend, h_spend = 0, 0
 
     for _, r in mdf.iterrows():
@@ -156,7 +156,7 @@ if menu == "Dashboard" and not df.empty:
             a_spend += r["amount"]/2
             h_spend += r["amount"]/2
 
-    # In hand (safe)
+    # In hand (safe fix retained)
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
@@ -176,36 +176,39 @@ if menu == "Dashboard" and not df.empty:
     a_save = a_in - a_spend
     h_save = h_in - h_spend
 
+    # ✅ FIXED PERSON CARD (CLEAN HTML STRING)
     def person_card(name, income, spend, save):
+
         if save >= 0:
-            saving_html = f"""
+            savings_html = f"""
             <div class="green">₹{save:,.0f}</div>
             <div class="note-green">✔ Great! You're saving well.</div>
             """
         else:
-            saving_html = f"""
+            savings_html = f"""
             <div class="red">-₹{abs(save):,.0f}</div>
             <div class="note-red">⚠ You've overspent this month.</div>
             """
 
-        return f"""
+        html = f"""
         <div class="card">
             <div class="person">{name}</div>
 
             <div class="label">In Hand</div>
             <div class="value">₹{income:,.0f}</div>
 
-            <hr>
+            <hr/>
 
             <div class="label">Spent</div>
             <div class="value">₹{spend:,.0f}</div>
 
-            <hr>
+            <hr/>
 
             <div class="label">Savings</div>
-            {saving_html}
+            {savings_html}
         </div>
         """
+        return html.strip()
 
     col1, col2 = st.columns(2)
 
@@ -215,7 +218,7 @@ if menu == "Dashboard" and not df.empty:
     with col2:
         st.markdown(person_card("Harshita", h_in, h_spend, h_save), unsafe_allow_html=True)
 
-    # IPO
+    # IPO (UNCHANGED)
     ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
 
     st.markdown(f"""
@@ -226,7 +229,7 @@ if menu == "Dashboard" and not df.empty:
     </div>
     """, unsafe_allow_html=True)
 
-    # Bar chart
+    # BAR CHART (UNCHANGED)
     cat = mdf.groupby("category")["amount"].sum().reset_index()
 
     if not cat.empty:
@@ -237,7 +240,7 @@ if menu == "Dashboard" and not df.empty:
         fig.update_layout(plot_bgcolor="#0b0f14", paper_bgcolor="#0b0f14", font=dict(color="white"))
         st.plotly_chart(fig, use_container_width=True)
 
-    # Donut
+    # DONUT (UNCHANGED)
     others = mdf[mdf["category"].str.lower() == "others"]
 
     if not others.empty:
@@ -255,7 +258,7 @@ if menu == "Dashboard" and not df.empty:
                 st.write(f"{r['description']} — ₹{r['amount']:,.0f}")
 
 # =========================
-# COMPARE
+# COMPARE (UNCHANGED)
 # =========================
 elif menu == "Compare" and not df.empty:
 
