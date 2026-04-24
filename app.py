@@ -179,7 +179,7 @@ if menu == "Dashboard" and not df.empty:
 </div>
 
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)   # ✅ THIS LINE IS CRITICAL
 
     # =========================
     # INVESTMENT + SPEND LOGIC (FINAL FIX)
