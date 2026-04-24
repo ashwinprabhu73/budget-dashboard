@@ -6,36 +6,30 @@ import plotly.graph_objects as go
 st.set_page_config(layout="wide")
 
 # =========================
-# 🎨 DARK UI
+# 🎨 GLOBAL DARK THEME
 # =========================
 st.markdown("""
 <style>
-
-/* Background */
 html, body, [data-testid="stAppViewContainer"] {
     background-color: #0b0f14;
 }
 
-/* Sidebar */
 [data-testid="stSidebar"] {
     background: #0a0f1a;
 }
 
-/* Title */
 h1 {
     color: #e5e7eb !important;
     font-size: 42px !important;
     font-weight: 700;
 }
 
-/* Labels (Select Year / Month) */
 label {
     color: #e5e7eb !important;
     font-size: 18px !important;
     font-weight: 500;
 }
 
-/* Dropdown styling */
 div[data-baseweb="select"] > div {
     background-color: #111827 !important;
     color: #9ca3af !important;
@@ -43,12 +37,10 @@ div[data-baseweb="select"] > div {
     border: 1px solid #1f2937 !important;
 }
 
-/* Dropdown text */
 div[data-baseweb="select"] span {
     color: #9ca3af !important;
 }
 
-/* Cards */
 .block {
     background: #111827;
     padding: 18px;
@@ -57,7 +49,6 @@ div[data-baseweb="select"] span {
     margin-bottom: 15px;
 }
 
-/* Colors */
 .gold { color: #d4af37; font-weight: bold; }
 .value { font-size: 26px; }
 
@@ -65,7 +56,6 @@ div[data-baseweb="select"] span {
 .red { color: #ef4444; font-weight: bold; }
 
 .label { color: #9ca3af; font-size: 14px; }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -124,14 +114,16 @@ if sheet:
 if menu == "Dashboard" and not df.empty:
 
     years = sorted(df["year"].unique())
-default_year = max(years)
+    default_year = max(years)
 
-year = st.selectbox(
-    "Select Year",
-    years,
-    index=years.index(default_year)
-)
+    year = st.selectbox("Select Year", years, index=years.index(default_year))
     year_df = df[df["year"] == year]
+
+    months_df = year_df.sort_values("month_num")
+    months = months_df["month"].unique()
+    latest_month = months_df.iloc[-1]["month"]
+
+    month = st.selectbox("Select Month", months, index=list(months).index(latest_month))
 
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
@@ -144,18 +136,6 @@ year = st.selectbox(
 </div>
 """, unsafe_allow_html=True)
 
-    months_df = year_df.sort_values("month_num")
-months = months_df["month"].unique()
-
-# latest month based on data
-latest_month = months_df.iloc[-1]["month"]
-
-month = st.selectbox(
-    "Select Month",
-    months,
-    index=list(months).index(latest_month)
-)
-
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
 
@@ -166,14 +146,10 @@ month = st.selectbox(
 </div>
 """, unsafe_allow_html=True)
 
-    # =========================
-    # PAID BY
-    # =========================
+    # Paid By logic (UNCHANGED)
     a_spend, h_spend = 0, 0
-
     for _, r in mdf.iterrows():
         p = str(r.get("paid_by", "")).lower()
-
         if p == "ashwin":
             a_spend += r["amount"]
         elif p == "harshita":
@@ -207,13 +183,10 @@ month = st.selectbox(
         with col:
             html = f"""<div class="block">
 <div class="gold" style="font-size:22px;">{name}</div>
-
 <div class="label">In Hand</div>
 <div class="gold value">₹{income:,.0f}</div>
-
 <div class="label">Spent</div>
 <div class="gold value">₹{spend:,.0f}</div>
-
 <div class="label">Savings</div>"""
 
             if save >= 0:
@@ -232,139 +205,35 @@ month = st.selectbox(
     render_person("Harshita", h_in, h_spend, h_save, col2)
 
     # =========================
-    # IPO
+    # COMPARE TAB
     # =========================
-    ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
-
-    st.markdown(f"""
-<div class="block">
-<div class="gold">IPO SUMMARY</div>
-<div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
-<div>Entries: {len(ipo)}</div>
-</div>
-""", unsafe_allow_html=True)
-
-    # =========================
-# ✅ EXPENSE BREAKDOWN (UPDATED)
-# =========================
-st.markdown(
-    "<h3 style='color:#d4af37; margin-bottom:10px;'>Expense Breakdown</h3>",
-    unsafe_allow_html=True
-)
-
-cat = mdf.groupby("category")["amount"].sum().reset_index()
-
-if not cat.empty:
-    total = cat["amount"].sum()
-
-    cat["label"] = cat.apply(
-        lambda x: f"₹{x['amount']:,.0f} ({(x['amount']/total)*100:.1f}%)",
-        axis=1
-    )
-
-    fig = px.bar(
-        cat,
-        x="category",
-        y="amount",
-        text="label"
-    )
-
-    fig.update_traces(
-        marker_color="#d4af37",
-        textposition="outside",
-        textfont=dict(
-            color="white",   # ✅ better visibility
-            size=12
-        )
-    )
-
-    fig.update_layout(
-        plot_bgcolor="#0b0f14",
-        paper_bgcolor="#0b0f14",
-
-        # ✅ REMOVE GRID LINES
-        yaxis=dict(
-            showgrid=False,
-            showticklabels=False,   # removes left numbers
-            title=None
-        ),
-
-        xaxis=dict(
-            title=None,
-            tickfont=dict(
-                color="#cbd5e1",   # soft premium grey
-                size=12
-            )
-        ),
-
-        font=dict(color="white")
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-   # =========================
-# ✅ OTHERS (FINAL COLOR FIX)
-# =========================
-others = mdf[mdf["category"].str.lower() == "others"]
-
-if not others.empty:
-
-    st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
-
-    # ✅ SORT DESC
-    grp = others.groupby("description")["amount"].sum().reset_index()
-    grp = grp.sort_values(by="amount", ascending=False)
-
-    total_other = grp["amount"].sum()
-
-    # ✅ USE PLOTLY DEFAULT COLORS (same as before)
-    base_colors = px.colors.qualitative.Plotly
-    colors = base_colors[:len(grp)]
-
-    col1, col2 = st.columns([3, 1])
-
-    with col1:
-        fig = go.Figure(data=[go.Pie(
-            labels=grp["description"],
-            values=grp["amount"],
-            hole=0.65,
-            textinfo='percent',
-            marker=dict(colors=colors)  # ✅ enforce same colors
-        )])
-
-        fig.add_annotation(
-            text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
-            x=0.5, y=0.5,
-            font_size=20,
-            showarrow=False
-        )
-
-        fig.update_layout(
-            paper_bgcolor="#0b0f14",
-            font=dict(color="white"),
-            showlegend=False
-        )
-
-        st.plotly_chart(fig, use_container_width=True)
-
-    # ✅ LEGEND WITH EXACT SAME COLORS
-    with col2:
-        for i, r in enumerate(grp.itertuples()):
-            color = colors[i]
-
-            st.markdown(
-                f"<span style='color:{color}; font-weight:500;'>● {r.description} — ₹{r.amount:,.0f}</span>",
-                unsafe_allow_html=True
-            )
-# =========================
-# COMPARE
-# =========================
 elif menu == "Compare" and not df.empty:
 
-    y1 = st.selectbox("Year 1", df["year"].unique())
-    y2 = st.selectbox("Year 2", df["year"].unique())
+    years = sorted(df["year"].unique())
+    latest_year = max(years)
 
-    m1 = st.selectbox("Month 1", df[df["year"]==y1]["month"].unique())
-    m2 = st.selectbox("Month 2", df[df["year"]==y2]["month"].unique())
+    col1, col2 = st.columns(2)
+
+    with col1:
+        y1 = st.selectbox("Year 1", years, index=years.index(latest_year))
+    with col2:
+        y2 = st.selectbox("Year 2", years, index=years.index(latest_year))
+
+    df_y1 = df[df["year"] == y1].sort_values("month_num")
+    df_y2 = df[df["year"] == y2].sort_values("month_num")
+
+    months1 = df_y1["month"].unique()
+    months2 = df_y2["month"].unique()
+
+    latest_m1 = df_y1.iloc[-1]["month"]
+    latest_m2 = df_y2.iloc[-1]["month"]
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        m1 = st.selectbox("Month 1", months1, index=list(months1).index(latest_m1))
+    with col4:
+        m2 = st.selectbox("Month 2", months2, index=list(months2).index(latest_m2))
 
     d1 = df[(df["year"]==y1)&(df["month"]==m1)]
     d2 = df[(df["year"]==y2)&(df["month"]==m2)]
