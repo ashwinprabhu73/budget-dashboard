@@ -150,7 +150,7 @@ if menu == "Dashboard" and not df.empty:
     st.markdown(f"""
 <div class="block">
 
-<div class="grey">IPO SUMMARY ({year})</div>
+<div class="grey value">IPO SUMMARY ({year})</div>
 
 <div style="display:flex; justify-content:center; gap:120px;">
 
