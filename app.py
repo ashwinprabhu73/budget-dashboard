@@ -153,22 +153,18 @@ if menu == "Dashboard" and not df.empty:
 
     col1, col2 = st.columns(2)
 
-    # =========================
-    # ✅ FIXED CARD
-    # =========================
     def render_person(name, income, spend, save, col):
         with col:
-
             html = f"""<div class="block">
-<div class="gold" style="font-size:22px; margin-bottom:10px;">{name}</div>
+<div class="gold" style="font-size:22px;">{name}</div>
 
 <div class="label">In Hand</div>
 <div class="gold value">₹{income:,.0f}</div>
 
-<div class="label" style="margin-top:10px;">Spent</div>
+<div class="label">Spent</div>
 <div class="gold value">₹{spend:,.0f}</div>
 
-<div class="label" style="margin-top:10px;">Savings</div>"""
+<div class="label">Savings</div>"""
 
             if save >= 0:
                 html += f"""
@@ -180,7 +176,6 @@ if menu == "Dashboard" and not df.empty:
 <div class="red">⚠ You've overspent this month.</div>"""
 
             html += "</div>"
-
             st.markdown(html, unsafe_allow_html=True)
 
     render_person("Ashwin", a_in, a_spend, a_save, col1)
@@ -219,30 +214,48 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
     # =========================
-    # DONUT
+    # ✅ OTHERS (UPDATED)
     # =========================
     others = mdf[mdf["category"].str.lower() == "others"]
 
     if not others.empty:
+
+        st.markdown("### Other Expenses")  # ✅ HEADER
+
         grp = others.groupby("description")["amount"].sum().reset_index()
+        total_other = grp["amount"].sum()
 
-        c1, c2 = st.columns([2,1])
+        fig = go.Figure(data=[go.Pie(
+            labels=grp["description"],
+            values=grp["amount"],
+            hole=0.65,
+            textinfo='percent'
+        )])
 
-        with c1:
-            fig = go.Figure(data=[go.Pie(
-                labels=grp["description"],
-                values=grp["amount"],
-                hole=0.65
-            )])
-            fig.update_layout(
-                paper_bgcolor="#0b0f14",
-                font=dict(color="white")
+        # ✅ CENTER TEXT
+        fig.add_annotation(
+            text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
+            x=0.5, y=0.5,
+            font_size=20,
+            showarrow=False
+        )
+
+        fig.update_layout(
+            paper_bgcolor="#0b0f14",
+            font=dict(color="white"),
+            showlegend=False   # ✅ remove duplicate legend
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        # ✅ SINGLE CLEAN LEGEND WITH COLORS
+        colors = px.colors.qualitative.Set3
+
+        for i, r in grp.iterrows():
+            st.markdown(
+                f"<span style='color:{colors[i % len(colors)]}'>● {r['description']} — ₹{r['amount']:,.0f}</span>",
+                unsafe_allow_html=True
             )
-            st.plotly_chart(fig, use_container_width=True)
-
-        with c2:
-            for _, r in grp.iterrows():
-                st.write(f"● {r['description']} — ₹{r['amount']:,.0f}")
 
 # =========================
 # COMPARE
