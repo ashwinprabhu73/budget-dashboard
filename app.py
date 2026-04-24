@@ -20,7 +20,6 @@ section[data-testid="stSidebar"] {
     color: #ffffff;
 }
 
-/* CARDS */
 .premium-card {
     background: linear-gradient(145deg, #1a1a1d, #111114);
     border-radius: 16px;
@@ -28,7 +27,6 @@ section[data-testid="stSidebar"] {
     border: 1px solid #2a2a2e;
 }
 
-/* TITLES */
 .card-title {
     font-size: 20px;
     font-weight: 600;
@@ -42,14 +40,12 @@ section[data-testid="stSidebar"] {
     margin-bottom: 10px;
 }
 
-/* LABELS */
 .caption {
     font-size: 15px;
     color: #9ca3af;
     margin-top: 8px;
 }
 
-/* NUMBERS */
 .big-number {
     font-size: 34px;
     font-weight: 700;
@@ -66,7 +62,6 @@ section[data-testid="stSidebar"] {
     -webkit-text-fill-color: transparent;
 }
 
-/* SPACING */
 .section-gap {
     margin-top: 30px;
 }
@@ -116,6 +111,13 @@ def preprocess(df):
     df["month_num"] = df["date"].dt.month
     df["month"] = df["date"].dt.strftime("%B")
     return df.sort_values(["year", "month_num"])
+
+# 🔥 NEW HELPER (ONLY ADDITION)
+def find_inhand_column(columns, person_name):
+    for col in columns:
+        if person_name in col and "hand" in col:
+            return col
+    return None
 
 # -----------------------
 # DATA
@@ -188,29 +190,24 @@ if menu == "Dashboard" and not df.empty:
                 ashwin_spend += row["amount"] / 2
                 harshita_spend += row["amount"] / 2
 
-    def find_inhand_column(columns, person_name):
-    for col in columns:
-        if person_name in col and "hand" in col:
-            return col
-    return None
+    # 🔥 FIXED IN HAND DETECTION
+    cols = df.columns
 
-cols = df.columns
+    ashwin_col = find_inhand_column(cols, "ashwin")
+    harshita_col = find_inhand_column(cols, "harshita")
 
-ashwin_col = find_inhand_column(cols, "ashwin")
-harshita_col = find_inhand_column(cols, "harshita")
+    ashwin_inhand = 0
+    harshita_inhand = 0
 
-ashwin_inhand = 0
-harshita_inhand = 0
+    if ashwin_col:
+        vals = year_df[ashwin_col].dropna()
+        if not vals.empty:
+            ashwin_inhand = vals.iloc[-1]
 
-if ashwin_col:
-    ashwin_vals = year_df[ashwin_col].dropna()
-    if not ashwin_vals.empty:
-        ashwin_inhand = ashwin_vals.iloc[-1]
-
-if harshita_col:
-    harshita_vals = year_df[harshita_col].dropna()
-    if not harshita_vals.empty:
-        harshita_inhand = harshita_vals.iloc[-1]
+    if harshita_col:
+        vals = year_df[harshita_col].dropna()
+        if not vals.empty:
+            harshita_inhand = vals.iloc[-1]
 
     ashwin_savings = ashwin_inhand - ashwin_spend
     harshita_savings = harshita_inhand - harshita_spend
@@ -245,18 +242,6 @@ if harshita_col:
 
     st.markdown("<hr>", unsafe_allow_html=True)
 
-    # IPO
-    ipo_month = ipo_df[ipo_df["month"] == selected_month]
-    st.markdown(f"""
-    <div class="premium-card">
-        <div class="card-title">IPO SUMMARY</div>
-        <div>Amount: ₹{ipo_month['amount'].sum():,.0f}</div>
-        <div>Entries: {len(ipo_month)}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("<hr>", unsafe_allow_html=True)
-
     # CATEGORY BAR
     cat = monthly_df.groupby("category")["amount"].sum().reset_index()
     if not cat.empty:
@@ -265,7 +250,7 @@ if harshita_col:
         cat["label"] = cat.apply(lambda x: f"₹{x['amount']:,.0f} ({x['percent']:.1f}%)", axis=1)
 
         fig = px.bar(cat, x="category", y="amount", text="label")
-        fig.update_traces(textposition="outside", textfont=dict(size=14))
+        fig.update_traces(textposition="outside")
         fig.update_layout(plot_bgcolor="#0a0a0c", paper_bgcolor="#0a0a0c", font=dict(color="white"))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -278,7 +263,7 @@ if harshita_col:
         st.plotly_chart(fig2, use_container_width=True)
 
 # =======================
-# COMPARE
+# COMPARE (UNCHANGED)
 # =======================
 elif menu == "Compare" and not df.empty:
 
