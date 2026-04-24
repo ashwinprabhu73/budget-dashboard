@@ -81,7 +81,7 @@ def preprocess(df):
 
 def find_inhand(cols, person):
     for c in cols:
-        if person in c and "hand" in c:
+        if person in c.lower() and "hand" in c.lower():
             return c
     return None
 
@@ -94,43 +94,45 @@ df = pd.DataFrame()
 if sheet:
     df = preprocess(load_sheet(extract_sheet_id(sheet)))
 
+# =========================
+# DASHBOARD
+# =========================
 if menu == "Dashboard" and not df.empty:
 
-    # =========================
-    # YEAR + MONTH
-    # =========================
-    years = sorted(df["year"].dropna().unique())
-    months = list(df["month"].dropna().unique())
-
+    years = sorted(df["year"].unique())
     year = st.selectbox("Select Year", years, index=len(years)-1)
-    month = st.selectbox("Select Month", months, index=len(months)-1)
 
     year_df = df[df["year"] == year]
+
+    months_df = year_df.sort_values("month_num")
+    months = months_df["month"].unique()
+    month = st.selectbox("Select Month", months, index=len(months)-1)
+
     # =========================
-    # SAFE EXPENSE FILTER
+    # CLEAN FILTERING (FIX)
     # =========================
-    if "type" in year_df.columns:
-      expense_df = year_df[year_df["type"].str.lower() == "expense"]
-    else:
-    # fallback: assume all are expenses except income/ipo handled separately
-      expense_df = year_df.copy()
+    year_df["category"] = year_df["category"].astype(str).str.lower()
+
+    expense_df = year_df[
+        ~year_df["category"].isin(["income", "ipo"])
+    ]
 
     # =========================
     # YEARLY SPEND
     # =========================
-    yearly_total = expense_df["amount"].sum()
+    total_year = expense_df["amount"].sum()
 
     st.markdown(f"""
     <div class="block">
-        <div class="label">Total Yearly Spend</div>
-        <div class="gold value">₹{yearly_total:,.0f}</div>
+    <div class="label">Total Yearly Spend</div>
+    <div class="gold value">₹{total_year:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
 
     # =========================
-    # IPO SUMMARY (FIXED)
+    # IPO SUMMARY
     # =========================
-    ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+    ipo_year = year_df[year_df["category"] == "ipo"]
 
     st.markdown(f"""
     <div class="block">
@@ -165,33 +167,28 @@ if menu == "Dashboard" and not df.empty:
     """, unsafe_allow_html=True)
 
     # =========================
-    # MONTHLY FILTER
+    # MONTHLY
     # =========================
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
 
     st.markdown(f"""
     <div class="block">
-        <div class="label">{month} Monthly Spend</div>
-        <div class="gold value">₹{monthly_total:,.0f}</div>
+    <div class="label">{month} Monthly Spend</div>
+    <div class="gold value">₹{monthly_total:,.0f}</div>
     </div>
     """, unsafe_allow_html=True)
 
     # =========================
-    # INVESTMENT + SPEND LOGIC
+    # INVESTMENT + SPEND
     # =========================
-    a_spend, h_spend = 0, 0
-    a_inv_rec, h_inv_rec = 0, 0
-    a_inv_lump, h_inv_lump = 0, 0
+    a_spend = h_spend = 0
+    a_inv_rec = h_inv_rec = 0
+    a_inv_lump = h_inv_lump = 0
 
-    rec_col = None
-    for c in df.columns:
-        if "recurring" in c.lower():
-            rec_col = c
-            break
+    rec_col = next((c for c in df.columns if "recurring" in c.lower()), None)
 
     for _, r in mdf.iterrows():
-
         p = str(r.get("paid_by", "")).lower()
         cat = str(r.get("category", "")).lower()
         amt = r["amount"]
@@ -199,42 +196,34 @@ if menu == "Dashboard" and not df.empty:
         rec_flag = str(r.get(rec_col, "")).lower() if rec_col else ""
 
         if cat == "investment":
-
             if "recurring" in rec_flag:
                 if p == "ashwin":
                     a_inv_rec += amt
                 elif p == "harshita":
                     h_inv_rec += amt
                 elif p == "us":
-                    a_inv_rec += amt / 2
-                    h_inv_rec += amt / 2
+                    a_inv_rec += amt/2
+                    h_inv_rec += amt/2
             else:
                 if p == "ashwin":
                     a_inv_lump += amt
                 elif p == "harshita":
                     h_inv_lump += amt
                 elif p == "us":
-                    a_inv_lump += amt / 2
-                    h_inv_lump += amt / 2
-
+                    a_inv_lump += amt/2
+                    h_inv_lump += amt/2
         else:
             if p == "ashwin":
                 a_spend += amt
             elif p == "harshita":
                 h_spend += amt
             elif p == "us":
-                a_spend += amt / 2
-                h_spend += amt / 2
+                a_spend += amt/2
+                h_spend += amt/2
 
     # =========================
     # INCOME
     # =========================
-    def find_inhand(cols, name):
-        for c in cols:
-            if name in c.lower() and "hand" in c.lower():
-                return c
-        return None
-
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
@@ -252,37 +241,27 @@ if menu == "Dashboard" and not df.empty:
 
     def render_person(name, income, inv_rec, inv_lump, spend, save, col):
         with col:
-            html = f"""
-            <div class="block">
-                <div class="gold">{name}</div>
-
-                <div class="label">In Hand</div>
-                <div class="gold value">₹{income:,.0f}</div>
-
-                <div class="label">Investment</div>
-                <div class="gold value">₹{inv_rec:,.0f}</div>
-
-                <div class="label">LumpSum Investment</div>
-                <div class="gold value">₹{inv_lump:,.0f}</div>
-
-                <div class="label">Spent</div>
-                <div class="gold value">₹{spend:,.0f}</div>
-
-                <div class="label">Savings</div>
-            """
-
+            html = f"""<div class="block">
+<div class="gold">{name}</div>
+<div class="label">In Hand</div>
+<div class="gold value">₹{income:,.0f}</div>
+<div class="label">Investment</div>
+<div class="gold value">₹{inv_rec:,.0f}</div>
+<div class="label">LumpSum Investment</div>
+<div class="gold value">₹{inv_lump:,.0f}</div>
+<div class="label">Spent</div>
+<div class="gold value">₹{spend:,.0f}</div>
+<div class="label">Savings</div>
+"""
             if save >= 0:
                 html += f"<div class='green value'>₹{save:,.0f}</div>"
             else:
                 html += f"<div class='red value'>-₹{abs(save):,.0f}</div>"
-
             html += "</div>"
-
             st.markdown(html, unsafe_allow_html=True)
 
     render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
-
 
     # =========================
     # EXPENSE BREAKDOWN
@@ -316,79 +295,3 @@ if menu == "Dashboard" and not df.empty:
         )
 
         st.plotly_chart(fig, use_container_width=True)
-
-    # =========================
-    # OTHER EXPENSES
-    # =========================
-    others = mdf[mdf["category"].str.lower() == "others"]
-
-    if not others.empty:
-
-        st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
-
-        grp = others.groupby("description")["amount"].sum().reset_index()
-        grp = grp.sort_values(by="amount", ascending=False)
-
-        total_other = grp["amount"].sum()
-
-        col1, col2 = st.columns([3,1])
-
-        colors = px.colors.qualitative.Plotly[:len(grp)]
-
-        with col1:
-            fig = go.Figure(data=[go.Pie(
-                labels=grp["description"],
-                values=grp["amount"],
-                hole=0.65,
-                marker=dict(colors=colors),
-                textinfo='percent'
-            )])
-
-            fig.add_annotation(
-                text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
-                x=0.5, y=0.5,
-                showarrow=False
-            )
-
-            fig.update_layout(
-                paper_bgcolor="#0b0f14",
-                showlegend=False
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-
-        with col2:
-            for i, r in enumerate(grp.itertuples()):
-                st.markdown(
-                    f"<span style='color:{colors[i]}'>● {r.description} — ₹{r.amount:,.0f}</span>",
-                    unsafe_allow_html=True
-                )
-# =========================
-# COMPARE (UNCHANGED)
-# =========================
-if menu == "Compare" and not df.empty:
-
-    years = sorted(df["year"].unique())
-    latest = len(years)-1
-
-    y1 = st.selectbox("Year 1", years, index=latest)
-    y2 = st.selectbox("Year 2", years, index=latest)
-
-    df_y1 = df[df["year"] == y1].sort_values("month_num")
-    df_y2 = df[df["year"] == y2].sort_values("month_num")
-
-    m1 = st.selectbox("Month 1", df_y1["month"].unique(), index=len(df_y1["month"].unique())-1)
-    m2 = st.selectbox("Month 2", df_y2["month"].unique(), index=len(df_y2["month"].unique())-1)
-
-    d1 = df[(df["year"]==y1)&(df["month"]==m1)]
-    d2 = df[(df["year"]==y2)&(df["month"]==m2)]
-
-    comp = pd.DataFrame({
-        f"{m1}-{y1}": d1.groupby("category")["amount"].sum(),
-        f"{m2}-{y2}": d2.groupby("category")["amount"].sum()
-    }).fillna(0)
-
-    comp = comp.reset_index().melt(id_vars="category", var_name="Month", value_name="amount")
-
-    fig = px.bar(comp, x="category", y="amount", color="Month", barmode="group")
-    st.plotly_chart(fig, use_container_width=True)
