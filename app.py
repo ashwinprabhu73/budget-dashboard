@@ -109,14 +109,33 @@ if menu == "Dashboard" and not df.empty:
 
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
-    total_year = expense_df["amount"].sum()
+total_year = expense_df["amount"].sum()
 
+# ===== YEARLY + IPO SIDE BY SIDE =====
+col_y1, col_y2 = st.columns(2)
+
+# Yearly Spend
+with col_y1:
     st.markdown(f"""
-<div class="block">
-<div class="label">Total Yearly Spend</div>
-<div class="gold value">₹{total_year:,.0f}</div>
-</div>
-""", unsafe_allow_html=True)
+    <div class="block">
+    <div class="label">Total Yearly Spend</div>
+    <div class="gold value">₹{total_year:,.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# IPO (YEARLY)
+ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+
+with col_y2:
+    st.markdown(f"""
+    <div class="block">
+    <div class="gold">IPO SUMMARY</div>
+    <div class="label">Total Investment</div>
+    <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+    <div class="label">Entries</div>
+    <div class="gold">{len(ipo_year)}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
@@ -237,18 +256,6 @@ if menu == "Dashboard" and not df.empty:
     render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
 
-    # =========================
-    # IPO
-    # =========================
-    ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
-
-    st.markdown(f"""
-<div class="block">
-<div class="gold">IPO SUMMARY</div>
-<div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
-<div>Entries: {len(ipo)}</div>
-</div>
-""", unsafe_allow_html=True)
 
     # =========================
     # EXPENSE BREAKDOWN
