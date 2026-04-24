@@ -188,6 +188,16 @@ if menu == "Dashboard" and not df.empty:
 """, unsafe_allow_html=True)
 
     mdf = expense_df[expense_df["month"] == month]
+    # =========================
+    # CREATE TYPE (Recurring vs Lumpsum)
+    # =========================
+    mdf["type"] = mdf["category"]  # default
+
+    mask = mdf["category"].str.lower() == "investment"
+
+    mdf.loc[mask, "type"] = mdf.loc[mask, "description"].apply(
+        lambda x: "Recurring" if "sip" in str(x).lower() else "Lumpsum"
+    ) 
     monthly_total = mdf["amount"].sum()
 
     # =========================
