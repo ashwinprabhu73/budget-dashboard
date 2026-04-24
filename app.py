@@ -257,35 +257,49 @@ if not cat.empty:
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # =========================
-    # OTHER EXPENSES
-    # =========================
     others = mdf[mdf["category"].str.lower() == "others"]
 
-    if not others.empty:
-        st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
+if not others.empty:
 
-        grp = others.groupby("description")["amount"].sum().reset_index()
-        grp = grp.sort_values(by="amount", ascending=False)
+    st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
 
-        col1, col2 = st.columns([3,1])
-        colors = px.colors.qualitative.Plotly[:len(grp)]
+    grp = others.groupby("description")["amount"].sum().reset_index()
+    grp = grp.sort_values(by="amount", ascending=False)
 
-        with col1:
-            fig = go.Figure(data=[go.Pie(
-                labels=grp["description"],
-                values=grp["amount"],
-                hole=0.65,
-                marker=dict(colors=colors)
-            )])
-            st.plotly_chart(fig, use_container_width=True)
+    total_other = grp["amount"].sum()
 
-        with col2:
-            for i, r in enumerate(grp.itertuples()):
-                st.markdown(
-                    f"<span style='color:{colors[i]}'>● {r.description} — ₹{r.amount:,.0f}</span>",
-                    unsafe_allow_html=True
-                )
+    col1, col2 = st.columns([3,1])
+
+    colors = px.colors.qualitative.Plotly[:len(grp)]
+
+    with col1:
+        fig = go.Figure(data=[go.Pie(
+            labels=grp["description"],
+            values=grp["amount"],
+            hole=0.65,
+            marker=dict(colors=colors),
+            textinfo='percent'
+        )])
+
+        fig.add_annotation(
+            text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
+            x=0.5, y=0.5,
+            showarrow=False
+        )
+
+        fig.update_layout(
+            paper_bgcolor="#0b0f14",
+            showlegend=False
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+    with col2:
+        for i, r in enumerate(grp.itertuples()):
+            st.markdown(
+                f"<span style='color:{colors[i]}'>● {r.description} — ₹{r.amount:,.0f}</span>",
+                unsafe_allow_html=True
+            )
 
 # =========================
 # COMPARE (UNCHANGED)
