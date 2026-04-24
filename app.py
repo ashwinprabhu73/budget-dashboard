@@ -130,7 +130,7 @@ if menu == "Dashboard" and not df.empty:
 <div class="block">
 <div class="label">IPO SUMMARY - {year}</div>
 <div class ="gold value">Amount: ₹{ipo['amount'].sum():,.0f}</div>
-<div>Entries: {len(ipo)}</div>
+<div class ="gold value">Entries: {len(ipo)}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -249,18 +249,6 @@ if menu == "Dashboard" and not df.empty:
     render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
 
-    # =========================
-    # IPO
-    # =========================
-    ipo = year_df[(year_df["month"] == month) & (year_df["category"].str.lower() == "ipo")]
-
-    st.markdown(f"""
-<div class="block">
-<div class="gold">IPO SUMMARY</div>
-<div>Amount: ₹{ipo['amount'].sum():,.0f}</div>
-<div>Entries: {len(ipo)}</div>
-</div>
-""", unsafe_allow_html=True)
 
     # =========================
     # EXPENSE BREAKDOWN
