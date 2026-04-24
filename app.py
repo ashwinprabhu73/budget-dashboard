@@ -112,55 +112,54 @@ if menu == "Dashboard" and not df.empty:
     total_year = expense_df["amount"].sum()
 
     # ===== YEARLY + IPO SIDE BY SIDE =====
-    col_y1, col_y2 = st.columns([1,1])
+col_y1, col_y2 = st.columns([1,1])
 
-    # Yearly Spend (FIXED SIZE)
-    with col_y1:
-        st.markdown(f"""
-        <div class="block">
-        <div class="gold">TOTAL YEARLY SPEND</div>
-        <div class="label">Amount</div>
-        <div class="gold value">₹{total_year:,.0f}</div>
-        </div>
-        """, unsafe_allow_html=True)
+# Yearly Spend
+with col_y1:
+    st.markdown(f"""
+    <div class="block">
+    <div class="gold">TOTAL YEARLY SPEND</div>
+    <div class="label">Amount</div>
+    <div class="gold value">₹{total_year:,.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # IPO (YEARLY)
+# IPO (YEARLY)
+with col_y2:
     ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
 
-    with col_y2:
-
-with col_y2:
     html = f"""
-<div class="block">
+    <div class="block">
 
-    <div class="gold">YEARLY IPO SUMMARY</div>
+        <div class="gold">YEARLY IPO SUMMARY</div>
 
-    <div style="display:flex; justify-content:space-between; margin-top:15px;">
-        <div>
-            <div class="label">Total Amount Utilised</div>
-            <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+        <div style="display:flex; justify-content:space-between; margin-top:15px;">
+            <div>
+                <div class="label">Total Amount Utilised</div>
+                <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotment Profit</div>
+                <div class="gold value">₹0</div>
+            </div>
         </div>
 
-        <div>
-            <div class="label">Allotment Profit</div>
-            <div class="gold value">₹0</div>
+        <div style="display:flex; justify-content:space-between; margin-top:20px;">
+            <div>
+                <div class="label">Applied</div>
+                <div class="gold value">{len(ipo_year)}</div>
+            </div>
+
+            <div>
+                <div class="label">Allotted</div>
+                <div class="gold value">0</div>
+            </div>
         </div>
+
     </div>
+    """
 
-    <div style="display:flex; justify-content:space-between; margin-top:20px;">
-        <div>
-            <div class="label">Applied</div>
-            <div class="gold value">{len(ipo_year)}</div>
-        </div>
-
-        <div>
-            <div class="label">Allotted</div>
-            <div class="gold value">0</div>
-        </div>
-    </div>
-
-</div>
-"""
     st.markdown(html, unsafe_allow_html=True)
 
     # =========================
