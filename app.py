@@ -44,6 +44,9 @@ div[data-baseweb="select"] > div {
 .red { color: #ef4444; font-weight: bold; }
 .white { color: #ffffff; font-weight: bold; }
 .label { color: #9ca3af; font-size: 14px; }
+.grey { color: #9ca3af; }
+.grey-light { color: #d1d5db; }
+.grey-dark { color: #6b7280; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -147,7 +150,7 @@ if menu == "Dashboard" and not df.empty:
     st.markdown(f"""
 <div class="block">
 
-<div class="gold">IPO SUMMARY ({year})</div>
+<div class="grey">IPO SUMMARY ({year})</div>
 
 <div style="display:flex; justify-content:center; gap:120px;">
 
