@@ -147,51 +147,72 @@ if menu == "Dashboard" and not df.empty:
 """, unsafe_allow_html=True)
 
     # =========================
-    # PAID BY (UNCHANGED)
-    # =========================
-    a_spend, h_spend = 0, 0
-    for _, r in mdf.iterrows():
-        p = str(r.get("paid_by", "")).lower()
+# PAID BY + INVESTMENT LOGIC (UPDATED)
+# =========================
+
+a_spend, h_spend = 0, 0
+a_inv_rec, h_inv_rec = 0, 0
+a_inv_lump, h_inv_lump = 0, 0
+
+for _, r in mdf.iterrows():
+    p = str(r.get("paid_by", "")).lower()
+    cat = str(r.get("category", "")).lower()
+
+    # recurring expense column (handle safely)
+    rec_flag = str(r.get("recurring expense", "")).lower()
+
+    amt = r["amount"]
+
+    # ===== INVESTMENT =====
+    if cat == "investment":
+
+        is_recurring = rec_flag in ["yes", "true", "1"]
+
+        if is_recurring:
+            if p == "ashwin":
+                a_inv_rec += amt
+            elif p == "harshita":
+                h_inv_rec += amt
+            elif p == "us":
+                a_inv_rec += amt / 2
+                h_inv_rec += amt / 2
+
+        else:  # lump sum
+            if p == "ashwin":
+                a_inv_lump += amt
+            elif p == "harshita":
+                h_inv_lump += amt
+            elif p == "us":
+                a_inv_lump += amt / 2
+                h_inv_lump += amt / 2
+
+    # ===== NORMAL SPEND =====
+    else:
         if p == "ashwin":
-            a_spend += r["amount"]
+            a_spend += amt
         elif p == "harshita":
-            h_spend += r["amount"]
+            h_spend += amt
         elif p == "us":
-            a_spend += r["amount"]/2
-            h_spend += r["amount"]/2
+            a_spend += amt / 2
+            h_spend += amt / 2
 
-    cols = df.columns
-    a_col = find_inhand(cols, "ashwin")
-    h_col = find_inhand(cols, "harshita")
 
-    a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
-    h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
+# =========================
+# IN HAND (NO CHANGE)
+# =========================
+cols = df.columns
+a_col = find_inhand(cols, "ashwin")
+h_col = find_inhand(cols, "harshita")
 
-    a_save = a_in - a_spend
-    h_save = h_in - h_spend
+a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
+h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
 
-    col1, col2 = st.columns(2)
 
-    def render_person(name, income, spend, save, col):
-        with col:
-            html = f"""<div class="block">
-<div class="gold">{name}</div>
-<div class="label">In Hand</div>
-<div class="gold value">₹{income:,.0f}</div>
-<div class="label">Spent</div>
-<div class="gold value">₹{spend:,.0f}</div>
-<div class="label">Savings</div>"""
-
-            if save >= 0:
-                html += f"<div class='green value'>₹{save:,.0f}</div>"
-            else:
-                html += f"<div class='red value'>-₹{abs(save):,.0f}</div>"
-
-            html += "</div>"
-            st.markdown(html, unsafe_allow_html=True)
-
-    render_person("Ashwin", a_in, a_spend, a_save, col1)
-    render_person("Harshita", h_in, h_spend, h_save, col2)
+# =========================
+# SAVINGS (UPDATED)
+# =========================
+a_save = a_in - a_inv_rec - a_spend
+h_save = h_in - h_inv_rec - h_spend
 
     # =========================
     # IPO (UNCHANGED)
