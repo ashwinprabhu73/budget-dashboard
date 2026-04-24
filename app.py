@@ -213,8 +213,8 @@ if menu == "Dashboard" and not df.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # =========================
-# ✅ OTHERS (COLOR MATCH FIX)
+   # =========================
+# ✅ OTHERS (FINAL COLOR FIX)
 # =========================
 others = mdf[mdf["category"].str.lower() == "others"]
 
@@ -228,6 +228,10 @@ if not others.empty:
 
     total_other = grp["amount"].sum()
 
+    # ✅ USE PLOTLY DEFAULT COLORS (same as before)
+    base_colors = px.colors.qualitative.Plotly
+    colors = base_colors[:len(grp)]
+
     col1, col2 = st.columns([3, 1])
 
     with col1:
@@ -235,10 +239,10 @@ if not others.empty:
             labels=grp["description"],
             values=grp["amount"],
             hole=0.65,
-            textinfo='percent'
+            textinfo='percent',
+            marker=dict(colors=colors)  # ✅ enforce same colors
         )])
 
-        # ✅ CENTER VALUE
         fig.add_annotation(
             text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
             x=0.5, y=0.5,
@@ -254,16 +258,13 @@ if not others.empty:
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # ✅ Extract actual colors used by plotly
-        pie_colors = fig.data[0]['marker']['colors']
-
-    # ✅ Legend with EXACT same colors
+    # ✅ LEGEND WITH EXACT SAME COLORS
     with col2:
         for i, r in enumerate(grp.itertuples()):
-            color = pie_colors[i] if pie_colors and i < len(pie_colors) else "#ffffff"
+            color = colors[i]
 
             st.markdown(
-                f"<span style='color:{color}'>● {r.description} — ₹{r.amount:,.0f}</span>",
+                f"<span style='color:{color}; font-weight:500;'>● {r.description} — ₹{r.amount:,.0f}</span>",
                 unsafe_allow_html=True
             )
 # =========================
