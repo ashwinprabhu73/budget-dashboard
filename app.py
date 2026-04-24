@@ -128,48 +128,63 @@ if menu == "Dashboard" and not df.empty:
 </div>
 """, unsafe_allow_html=True)
 
-    # =========================
-    # INVESTMENT + SPEND LOGIC
-    # =========================
-    a_spend, h_spend = 0, 0
-    a_inv_rec, h_inv_rec = 0, 0
-    a_inv_lump, h_inv_lump = 0, 0
+# =========================
+# INVESTMENT + SPEND LOGIC (FINAL FIX)
+# =========================
 
-    for _, r in mdf.iterrows():
-        p = str(r.get("paid_by", "")).strip().lower()
-        cat = str(r.get("category", "")).strip().lower()
-        rec_flag = str(r.get("recurring expense", "")).strip().lower()
+a_spend, h_spend = 0, 0
+a_inv_rec, h_inv_rec = 0, 0
+a_inv_lump, h_inv_lump = 0, 0
 
-        amt = r["amount"]
+# auto-detect recurring column
+rec_col = None
+for c in df.columns:
+    if "recurring" in c:
+        rec_col = c
+        break
 
-        if cat == "investment":
-            is_rec = rec_flag == "recurring"
+for _, r in mdf.iterrows():
 
-            if is_rec:
-                if p == "ashwin":
-                    a_inv_rec += amt
-                elif p == "harshita":
-                    h_inv_rec += amt
-                elif p == "us":
-                    a_inv_rec += amt/2
-                    h_inv_rec += amt/2
-            else:
-                if p == "ashwin":
-                    a_inv_lump += amt
-                elif p == "harshita":
-                    h_inv_lump += amt
-                elif p == "us":
-                    a_inv_lump += amt/2
-                    h_inv_lump += amt/2
+    p = str(r.get("paid_by", "")).strip().lower()
+    cat = str(r.get("category", "")).strip().lower()
+
+    amt = r["amount"]
+
+    # safe recurring flag
+    rec_flag = ""
+    if rec_col:
+        rec_flag = str(r.get(rec_col, "")).strip().lower()
+
+    if cat == "investment":
+
+        is_rec = "recurring" in rec_flag   # <-- THIS IS THE FIX
+
+        if is_rec:
+            if p == "ashwin":
+                a_inv_rec += amt
+            elif p == "harshita":
+                h_inv_rec += amt
+            elif p == "us":
+                a_inv_rec += amt / 2
+                h_inv_rec += amt / 2
 
         else:
             if p == "ashwin":
-                a_spend += amt
+                a_inv_lump += amt
             elif p == "harshita":
-                h_spend += amt
+                h_inv_lump += amt
             elif p == "us":
-                a_spend += amt/2
-                h_spend += amt/2
+                a_inv_lump += amt / 2
+                h_inv_lump += amt / 2
+
+    else:
+        if p == "ashwin":
+            a_spend += amt
+        elif p == "harshita":
+            h_spend += amt
+        elif p == "us":
+            a_spend += amt / 2
+            h_spend += amt / 2
 
     cols = df.columns
     a_col = find_inhand(cols, "ashwin")
