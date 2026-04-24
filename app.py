@@ -109,73 +109,70 @@ if menu == "Dashboard" and not df.empty:
 
     expense_df = year_df[year_df["category"].str.lower() != "ipo"]
 
-total_year = expense_df["amount"].sum()
+    total_year = expense_df["amount"].sum()
 
-# ===== YEARLY + IPO SIDE BY SIDE =====
-col_y1, col_y2 = st.columns(2)
+    # ===== YEARLY + IPO SIDE BY SIDE =====
+    col_y1, col_y2 = st.columns([1,1])
 
-# Yearly Spend
-with col_y1:
-    st.markdown(f"""
-    <div class="block">
-    <div class="label">Total Yearly Spend</div>
-    <div class="gold value">₹{total_year:,.0f}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Yearly Spend (FIXED SIZE)
+    with col_y1:
+        st.markdown(f"""
+        <div class="block">
+        <div class="gold">TOTAL YEARLY SPEND</div>
+        <div class="label">Amount</div>
+        <div class="gold value">₹{total_year:,.0f}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-# IPO (YEARLY)
-ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
+    # IPO (YEARLY)
+    ipo_year = year_df[year_df["category"].str.lower() == "ipo"]
 
-with col_y2:
-    st.markdown(f"""
-    <div class="block">
-    <div class="gold">IPO SUMMARY</div>
-    <div class="label">Total Investment</div>
-    <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
-    <div class="label">Entries</div>
-    <div class="gold">{len(ipo_year)}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    with col_y2:
+        st.markdown(f"""
+        <div class="block">
+        <div class="gold">IPO SUMMARY</div>
+        <div class="label">Total Investment</div>
+        <div class="gold value">₹{ipo_year['amount'].sum():,.0f}</div>
+        <div class="label">Entries</div>
+        <div class="gold">{len(ipo_year)}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
+    # =========================
+    # MONTHLY (NOW FULL WIDTH ✅)
+    # =========================
     mdf = expense_df[expense_df["month"] == month]
     monthly_total = mdf["amount"].sum()
 
     st.markdown(f"""
-<div class="block">
-<div class="label">{month} Monthly Spend</div>
-<div class="gold value">₹{monthly_total:,.0f}</div>
-</div>
-""", unsafe_allow_html=True)
+    <div class="block">
+    <div class="label">{month} Monthly Spend</div>
+    <div class="gold value">₹{monthly_total:,.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # =========================
-    # INVESTMENT + SPEND LOGIC (FINAL FIX)
+    # INVESTMENT + SPEND LOGIC
     # =========================
-
     a_spend, h_spend = 0, 0
     a_inv_rec, h_inv_rec = 0, 0
     a_inv_lump, h_inv_lump = 0, 0
 
-    # detect recurring column
     rec_col = None
     for c in df.columns:
         if "recurring" in c:
             rec_col = c
             break
 
-    # ===== LOOP =====
     for _, r in mdf.iterrows():
 
         p = str(r.get("paid_by", "")).strip().lower()
         cat = str(r.get("category", "")).strip().lower()
-
         amt = r["amount"]
 
-        rec_flag = ""
-        if rec_col:
-            rec_flag = str(r.get(rec_col, "")).strip().lower()
+        rec_flag = str(r.get(rec_col, "")).strip().lower() if rec_col else ""
 
         if "investment" in cat:
-
             is_rec = "recurring" in rec_flag
 
             if is_rec:
@@ -184,16 +181,16 @@ with col_y2:
                 elif p == "harshita":
                     h_inv_rec += amt
                 elif p == "us":
-                    a_inv_rec += amt / 2
-                    h_inv_rec += amt / 2
+                    a_inv_rec += amt/2
+                    h_inv_rec += amt/2
             else:
                 if p == "ashwin":
                     a_inv_lump += amt
                 elif p == "harshita":
                     h_inv_lump += amt
                 elif p == "us":
-                    a_inv_lump += amt / 2
-                    h_inv_lump += amt / 2
+                    a_inv_lump += amt/2
+                    h_inv_lump += amt/2
 
         else:
             if p == "ashwin":
@@ -201,8 +198,8 @@ with col_y2:
             elif p == "harshita":
                 h_spend += amt
             elif p == "us":
-                a_spend += amt / 2
-                h_spend += amt / 2
+                a_spend += amt/2
+                h_spend += amt/2
 
     # =========================
     # IN HAND
@@ -214,14 +211,11 @@ with col_y2:
     a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
     h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
 
-    # =========================
-    # SAVINGS
-    # =========================
     a_save = a_in - a_inv_rec - a_spend
     h_save = h_in - h_inv_rec - h_spend
 
     # =========================
-    # UI
+    # PERSON CARDS (UNCHANGED)
     # =========================
     col1, col2 = st.columns(2)
 
