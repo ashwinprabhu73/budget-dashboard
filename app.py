@@ -214,17 +214,22 @@ if menu == "Dashboard" and not df.empty:
         st.plotly_chart(fig, use_container_width=True)
 
     # =========================
-    # ✅ OTHERS (UPDATED)
-    # =========================
-    others = mdf[mdf["category"].str.lower() == "others"]
+# ✅ OTHERS (UPDATED)
+# =========================
+others = mdf[mdf["category"].str.lower() == "others"]
 
-    if not others.empty:
+if not others.empty:
 
-        st.markdown("### Other Expenses")  # ✅ HEADER
+    # ✅ Header with dark blue color
+    st.markdown("<h3 style='color:#1e3a8a;'>Other Expenses</h3>", unsafe_allow_html=True)
 
-        grp = others.groupby("description")["amount"].sum().reset_index()
-        total_other = grp["amount"].sum()
+    grp = others.groupby("description")["amount"].sum().reset_index()
+    total_other = grp["amount"].sum()
 
+    # ✅ 75 : 25 layout
+    col1, col2 = st.columns([3, 1])
+
+    with col1:
         fig = go.Figure(data=[go.Pie(
             labels=grp["description"],
             values=grp["amount"],
@@ -232,7 +237,7 @@ if menu == "Dashboard" and not df.empty:
             textinfo='percent'
         )])
 
-        # ✅ CENTER TEXT
+        # ✅ Center total
         fig.add_annotation(
             text=f"<b style='color:white'>₹{total_other:,.0f}</b>",
             x=0.5, y=0.5,
@@ -243,12 +248,12 @@ if menu == "Dashboard" and not df.empty:
         fig.update_layout(
             paper_bgcolor="#0b0f14",
             font=dict(color="white"),
-            showlegend=False   # ✅ remove duplicate legend
+            showlegend=False
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-        # ✅ SINGLE CLEAN LEGEND WITH COLORS
+    with col2:
         colors = px.colors.qualitative.Set3
 
         for i, r in grp.iterrows():
@@ -256,7 +261,6 @@ if menu == "Dashboard" and not df.empty:
                 f"<span style='color:{colors[i % len(colors)]}'>● {r['description']} — ₹{r['amount']:,.0f}</span>",
                 unsafe_allow_html=True
             )
-
 # =========================
 # COMPARE
 # =========================
