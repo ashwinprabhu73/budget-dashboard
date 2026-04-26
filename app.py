@@ -167,92 +167,147 @@ def render_credit_card_status(mdf, df):
     paid_via_col = None
     status_col = None
     bank_col = None
+    paid_by_col = None
 
     for c in df.columns:
-        cl = c.lower()
+        cl = c.strip().lower()
         if "paid" in cl and "via" in cl:
             paid_via_col = c
-        if "status" in cl:
+        elif "status" in cl:
             status_col = c
-        if "bank" in cl:
+        elif "bank" in cl:
             bank_col = c
+        elif "paid_by" in cl or "paid by" in cl:
+            paid_by_col = c
 
     if not paid_via_col:
-        st.markdown(
-            "<div class='block'><div class='grey'>Paid Via column not found</div></div>",
-            unsafe_allow_html=True
-        )
+        st.markdown("<div class='block'><div class='grey'>Paid Via column not found</div></div>", unsafe_allow_html=True)
         return
 
     # =========================
-    # TOTAL CREDIT CARD SPENT
+    # FILTER CREDIT CARD DATA
     # =========================
     cc_all = mdf[
-    mdf[paid_via_col]
-    .astype(str)
-    .str.strip()
-    .str.lower()
-    .str.contains("credit", na=False)
+        mdf[paid_via_col]
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .str.contains("credit", na=False)
     ]
 
-    total_spent = cc_all["amount"].sum() if not cc_all.empty else 0
-
-    # =========================
-    # OUTSTANDING (DUE)
-    # =========================
     cc_due = pd.DataFrame()
 
     if status_col:
-      cc_due = cc_all[
-          cc_all[status_col]
-          .astype(str)
-          .str.strip()
-          .str.lower()
-          .str.contains("outstanding", na=False)
-    ]
-
-    total_due = cc_due["amount"].sum() if not cc_due.empty else 0
+        cc_due = cc_all[
+            cc_all[status_col]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .str.contains("outstanding", na=False)
+        ]
 
     # =========================
-    # GROUP BY BANK (ONLY FOR DUE)
+    # PERSON-WISE CALCULATION
     # =========================
-    if not cc_due.empty and bank_col:
-        cc_group = cc_due.groupby(bank_col)["amount"].sum().reset_index()
-    else:
-        cc_group = pd.DataFrame()
+    a_spent, h_spent = 0, 0
+    a_due, h_due = 0, 0
 
-    # =========================
-    # UI BLOCK
-    # =========================
-
-    bank_html = ""
-
-    if not cc_group.empty:
-       bank_html += "<br><div class='label'>Bank-wise Due</div>"
-
-       for _, r in cc_group.iterrows():
-        bank_name = r[bank_col]
+    for _, r in cc_all.iterrows():
+        p = str(r.get(paid_by_col, "")).strip().lower()
         amt = r["amount"]
 
-        bank_html += f"<div style='color:#ef4444; margin-bottom:8px;'>● {bank_name} — ₹{amt:,.0f}</div>"
-    if total_due == 0:
-       due_html = f"<div class='green value'>₹{total_due:,.0f}</div>"
-    else:
-       due_html = f"<div class='red value'>₹{total_due:,.0f}</div>"
-    html = f"""
-    <div class="block">
-    <div class="label">Total Spent (Credit Card)</div>
-    <div class="gold value">₹{total_spent:,.0f}</div>
+        if p == "ashwin":
+            a_spent += amt
+        elif p == "harshita":
+            h_spent += amt
+        elif p == "us":
+            a_spent += amt / 2
+            h_spent += amt / 2
 
-    <div class="label">Total Due</div>
-    <div class="red value">₹{total_due:,.0f}</div>
+    for _, r in cc_due.iterrows():
+        p = str(r.get(paid_by_col, "")).strip().lower()
+        amt = r["amount"]
 
-    {bank_html}
-    
-    </div>
-    """
+        if p == "ashwin":
+            a_due += amt
+        elif p == "harshita":
+            h_due += amt
+        elif p == "us":
+            a_due += amt / 2
+            h_due += amt / 2
 
-    st.markdown(html, unsafe_allow_html=True)
+    # =========================
+    # BANK-WISE PER PERSON
+    # =========================
+    a_bank_html = ""
+    h_bank_html = ""
+
+    if not cc_due.empty and bank_col and paid_by_col:
+
+        a_grp = cc_due[
+            cc_due[paid_by_col].astype(str).str.lower() == "ashwin"
+        ].groupby(bank_col)["amount"].sum().reset_index()
+
+        h_grp = cc_due[
+            cc_due[paid_by_col].astype(str).str.lower() == "harshita"
+        ].groupby(bank_col)["amount"].sum().reset_index()
+
+        if not a_grp.empty:
+            a_bank_html += "<br><div class='label'>Bank-wise</div>"
+            for _, r in a_grp.iterrows():
+                a_bank_html += f"<div style='color:#ef4444;'>● {r[bank_col]} — ₹{r['amount']:,.0f}</div>"
+
+        if not h_grp.empty:
+            h_bank_html += "<br><div class='label'>Bank-wise</div>"
+            for _, r in h_grp.iterrows():
+                h_bank_html += f"<div style='color:#ef4444;'>● {r[bank_col]} — ₹{r['amount']:,.0f}</div>"
+
+    # =========================
+    # DUE COLOR LOGIC
+    # =========================
+    a_due_html = f"<div class='green value'>₹{a_due:,.0f}</div>" if a_due == 0 else f"<div class='red value'>₹{a_due:,.0f}</div>"
+    h_due_html = f"<div class='green value'>₹{h_due:,.0f}</div>" if h_due == 0 else f"<div class='red value'>₹{h_due:,.0f}</div>"
+
+    # =========================
+    # UI (2 COLUMNS)
+    # =========================
+    col1, col2 = st.columns(2)
+
+    # Ashwin
+    with col1:
+        html = f"""
+<div class="block">
+<div class="gold">Ashwin</div>
+
+<div class="label">Total Spent</div>
+<div class="gold value">₹{a_spent:,.0f}</div>
+
+<div class="label">Due</div>
+{a_due_html}
+
+{a_bank_html}
+
+</div>
+"""
+        st.markdown(html, unsafe_allow_html=True)
+
+    # Harshita
+    with col2:
+        html = f"""
+<div class="block">
+<div class="gold">Harshita</div>
+
+<div class="label">Total Spent</div>
+<div class="gold value">₹{h_spent:,.0f}</div>
+
+<div class="label">Due</div>
+{h_due_html}
+
+{h_bank_html}
+
+</div>
+"""
+        st.markdown(html, unsafe_allow_html=True)
 
     
 
