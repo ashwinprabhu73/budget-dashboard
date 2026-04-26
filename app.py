@@ -162,7 +162,7 @@ def render_credit_card_status(mdf, df):
     st.markdown("<h3 style='color:#d4af37;'>Credit Card Status</h3>", unsafe_allow_html=True)
 
     # =========================
-    # Detect columns safely
+    # Detect columns
     # =========================
     paid_via_col = None
     status_col = None
@@ -177,57 +177,76 @@ def render_credit_card_status(mdf, df):
         if "bank" in cl:
             bank_col = c
 
-    if not paid_via_col or not status_col:
+    if not paid_via_col:
         st.markdown(
-            "<div class='block'><div class='grey'>Required columns not found</div></div>",
+            "<div class='block'><div class='grey'>Paid Via column not found</div></div>",
             unsafe_allow_html=True
         )
         return
 
     # =========================
-    # Filter Credit Card Outstanding
+    # TOTAL CREDIT CARD SPENT
     # =========================
-    cc_df = mdf[
-        (mdf[paid_via_col].astype(str).str.lower() == "credit card") &
-        (mdf[status_col].astype(str).str.lower() == "credit card bill outstanding")
+    cc_all = mdf[
+        mdf[paid_via_col].astype(str).str.lower() == "credit card"
     ]
 
-    if cc_df.empty:
-        st.markdown(
-            "<div class='block'><div class='grey'>No Credit Card Outstanding 🎉</div></div>",
-            unsafe_allow_html=True
-        )
-        return
+    total_spent = cc_all["amount"].sum() if not cc_all.empty else 0
 
     # =========================
-    # Group by Bank
+    # OUTSTANDING (DUE)
     # =========================
-    if bank_col:
-        cc_group = cc_df.groupby(bank_col)["amount"].sum().reset_index()
+    cc_due = pd.DataFrame()
+
+    if status_col:
+        cc_due = cc_all[
+            cc_all[status_col].astype(str).str.lower() == "credit card bill outstanding"
+        ]
+
+    total_due = cc_due["amount"].sum() if not cc_due.empty else 0
+
+    # =========================
+    # GROUP BY BANK (ONLY FOR DUE)
+    # =========================
+    if not cc_due.empty and bank_col:
+        cc_group = cc_due.groupby(bank_col)["amount"].sum().reset_index()
     else:
-        cc_group = pd.DataFrame({
-            "bank": ["Total"],
-            "amount": [cc_df["amount"].sum()]
-        })
-
-    total_cc = cc_group["amount"].sum()
+        cc_group = pd.DataFrame()
 
     # =========================
-    # UI
+    # UI BLOCK
     # =========================
     st.markdown(f"""
     <div class="block">
-        <div class="label">Total Outstanding</div>
-        <div class="red value">₹{total_cc:,.0f}</div>
+
+        <div class="label">Total Spent (Credit Card)</div>
+        <div class="gold value">₹{total_spent:,.0f}</div>
+
+        <div class="label">Total Due</div>
+        <div class="red value">₹{total_due:,.0f}</div>
+
     </div>
     """, unsafe_allow_html=True)
 
-    for _, r in cc_group.iterrows():
-        bank_name = r[bank_col] if bank_col else "Total"
-        amt = r["amount"]
+    # =========================
+    # BANK WISE DUE
+    # =========================
+    if not cc_group.empty:
 
+        st.markdown("<div class='label'>Bank-wise Due</div>", unsafe_allow_html=True)
+
+        for _, r in cc_group.iterrows():
+            bank_name = r[bank_col]
+            amt = r["amount"]
+
+            st.markdown(
+                f"<span style='color:#ef4444'>● {bank_name} — ₹{amt:,.0f}</span>",
+                unsafe_allow_html=True
+            )
+
+    elif total_due == 0:
         st.markdown(
-            f"<span style='color:#ef4444'>● {bank_name} — ₹{amt:,.0f}</span>",
+            "<div class='grey'>No Outstanding 🎉</div>",
             unsafe_allow_html=True
         )
 
