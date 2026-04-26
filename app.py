@@ -115,6 +115,35 @@ div[data-baseweb="select"] > div {
 </style>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+
+/* Load Data Button Styling */
+div[data-testid="stButton"] > button {
+    background-color: #111827;
+    color: #e5e7eb;
+    border: 1px solid #1f2937;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+/* Hover effect */
+div[data-testid="stButton"] > button:hover {
+    background-color: #1f2937;
+    border-color: #374151;
+}
+
+/* Remove default blue focus */
+div[data-testid="stButton"] > button:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
 col1, col2 = st.columns([10, 1])
 
 st.title("Smart Budget Dashboard")
