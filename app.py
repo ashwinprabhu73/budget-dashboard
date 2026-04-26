@@ -281,7 +281,7 @@ def render_credit_card_status(mdf, df):
     font-size:20px;
     font-weight:700;
     color:#60a5fa;
-    border-left:4px solid #facc15;
+    border-left:4px solid #60a5fa;
     padding-left:10px;
     margin-bottom:10px;
 ">
