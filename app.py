@@ -277,7 +277,16 @@ def render_credit_card_status(mdf, df):
     with col1:
         html = f"""
 <div class="block">
-<div class="gold">Ashwin</div>
+<div style="
+    font-size:20px;
+    font-weight:700;
+    color:#facc15;
+    border-left:4px solid #facc15;
+    padding-left:10px;
+    margin-bottom:10px;
+">
+Ashwin
+</div>
 
 <div class="label">Total Spent</div>
 <div class="gold value">₹{a_spent:,.0f}</div>
