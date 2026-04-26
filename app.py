@@ -246,32 +246,15 @@ def render_credit_card_status(mdf, df):
 
     <div class="label">Total Due</div>
     <div class="red value">₹{total_due:,.0f}</div>
+
+    {bank_html}
+    
     </div>
     """
 
     st.markdown(html, unsafe_allow_html=True)
 
-    # =========================
-    # BANK WISE DUE
-    # =========================
-    if not cc_group.empty:
-
-        st.markdown("<div class='label'>Bank-wise Due</div>", unsafe_allow_html=True)
-
-        for _, r in cc_group.iterrows():
-            bank_name = r[bank_col]
-            amt = r["amount"]
-
-            st.markdown(
-                f"<span style='color:#ef4444'>● {bank_name} — ₹{amt:,.0f}</span>",
-                unsafe_allow_html=True
-            )
-
-    elif total_due == 0:
-        st.markdown(
-            "<div class='grey'>No Outstanding 🎉</div>",
-            unsafe_allow_html=True
-        )
+    
 
 # =========================
 # DATA
