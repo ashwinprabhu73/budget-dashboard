@@ -419,7 +419,7 @@ if menu == "Dashboard" and not df.empty:
         with col2:
             for i, r in enumerate(grp.itertuples()):
                 st.markdown(
-                    f"<span style='color:{colors[i]}'>● {r.description} — ₹{r.amount:,.0f}</span>",
+                    f"<span style='color:{colors[i % len(colors)]}'>● {r.description} — ₹{r.amount:,.0f}</span>",
                     unsafe_allow_html=True
                 )
 # =========================
