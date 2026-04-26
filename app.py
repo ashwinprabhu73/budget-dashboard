@@ -115,7 +115,15 @@ div[data-baseweb="select"] > div {
 </style>
 """, unsafe_allow_html=True)
 
-st.title("Smart Budget Dashboard")
+col1, col2 = st.columns([10, 1])
+
+with col1:
+    st.title("Smart Budget Dashboard")
+
+with col2:
+    if st.button("🔄", help="Refresh latest data"):
+        st.cache_data.clear()
+        st.rerun()
 
 menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 
@@ -124,7 +132,8 @@ menu = st.sidebar.selectbox("Menu", ["Dashboard", "Compare"])
 # =========================
 def extract_sheet_id(url):
     return url.split("/d/")[1].split("/")[0] if "docs.google.com" in url else url
-
+    
+@st.cache_data(ttl=300)
 def load_sheet(sheet_id):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=xlsx"
     return pd.concat(pd.read_excel(url, sheet_name=None).values(), ignore_index=True)
