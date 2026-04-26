@@ -228,17 +228,13 @@ def render_credit_card_status(mdf, df):
     bank_html = ""
 
     if not cc_group.empty:
-       bank_html += "<br><div class='label'>Bank-wise Due</div><br>"
+       bank_html += "<br><div class='label'>Bank-wise Due</div>"
 
        for _, r in cc_group.iterrows():
-           bank_name = r[bank_col]
-           amt = r["amount"]
+        bank_name = r[bank_col]
+        amt = r["amount"]
 
-           bank_html += f"""
-           <div style='color:#ef4444; margin-bottom:6px;'>
-               ● {bank_name} — ₹{amt:,.0f}
-           </div>
-           """
+        bank_html += f"<div style='color:#ef4444; margin-bottom:8px;'>● {bank_name} — ₹{amt:,.0f}</div>"
     html = f"""
     <div class="block">
     <div class="label">Total Spent (Credit Card)</div>
