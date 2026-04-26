@@ -217,16 +217,16 @@ def render_credit_card_status(mdf, df):
     # UI BLOCK
     # =========================
     html = f"""
-<div class="block">
+    <div class="block">
     <div class="label">Total Spent (Credit Card)</div>
     <div class="gold value">₹{total_spent:,.0f}</div>
 
     <div class="label">Total Due</div>
     <div class="red value">₹{total_due:,.0f}</div>
-</div>
-"""
+    </div>
+    """
 
-st.markdown(html, unsafe_allow_html=True)
+    st.markdown(html, unsafe_allow_html=True)
 
     # =========================
     # BANK WISE DUE
