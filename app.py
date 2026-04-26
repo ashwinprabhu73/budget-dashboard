@@ -154,6 +154,83 @@ def find_inhand(cols, person):
             return c
     return None
 
+def render_credit_card_status(mdf, df):
+
+    import streamlit as st
+    import pandas as pd
+
+    st.markdown("<h3 style='color:#d4af37;'>Credit Card Status</h3>", unsafe_allow_html=True)
+
+    # =========================
+    # Detect columns safely
+    # =========================
+    paid_via_col = None
+    status_col = None
+    bank_col = None
+
+    for c in df.columns:
+        cl = c.lower()
+        if "paid" in cl and "via" in cl:
+            paid_via_col = c
+        if "status" in cl:
+            status_col = c
+        if "bank" in cl:
+            bank_col = c
+
+    if not paid_via_col or not status_col:
+        st.markdown(
+            "<div class='block'><div class='grey'>Required columns not found</div></div>",
+            unsafe_allow_html=True
+        )
+        return
+
+    # =========================
+    # Filter Credit Card Outstanding
+    # =========================
+    cc_df = mdf[
+        (mdf[paid_via_col].astype(str).str.lower() == "credit card") &
+        (mdf[status_col].astype(str).str.lower() == "credit card bill outstanding")
+    ]
+
+    if cc_df.empty:
+        st.markdown(
+            "<div class='block'><div class='grey'>No Credit Card Outstanding 🎉</div></div>",
+            unsafe_allow_html=True
+        )
+        return
+
+    # =========================
+    # Group by Bank
+    # =========================
+    if bank_col:
+        cc_group = cc_df.groupby(bank_col)["amount"].sum().reset_index()
+    else:
+        cc_group = pd.DataFrame({
+            "bank": ["Total"],
+            "amount": [cc_df["amount"].sum()]
+        })
+
+    total_cc = cc_group["amount"].sum()
+
+    # =========================
+    # UI
+    # =========================
+    st.markdown(f"""
+    <div class="block">
+        <div class="label">Total Outstanding</div>
+        <div class="red value">₹{total_cc:,.0f}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    for _, r in cc_group.iterrows():
+        bank_name = r[bank_col] if bank_col else "Total"
+        amt = r["amount"]
+
+        st.markdown(
+            f"<span style='color:#ef4444'>● {bank_name} — ₹{amt:,.0f}</span>",
+            unsafe_allow_html=True
+        )
+
 # =========================
 # DATA
 # =========================
@@ -368,9 +445,12 @@ if menu == "Dashboard" and not df.empty:
     render_person("Ashwin", a_in, a_inv_rec, a_inv_lump, a_spend, a_save, col1)
     render_person("Harshita", h_in, h_inv_rec, h_inv_lump, h_spend, h_save, col2)
 
+    # Credit card status
+    render_credit_card_status(mdf, df)
+
     render_expense_chart(mdf, df)
     
-
+    
     # =========================
     # OTHER EXPENSES (THIS MUST ALIGN)
     # =========================
