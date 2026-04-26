@@ -188,7 +188,11 @@ def render_credit_card_status(mdf, df):
     # TOTAL CREDIT CARD SPENT
     # =========================
     cc_all = mdf[
-        mdf[paid_via_col].astype(str).str.lower() == "credit card"
+    mdf[paid_via_col]
+    .astype(str)
+    .str.strip()
+    .str.lower()
+    .str.contains("credit", na=False)
     ]
 
     total_spent = cc_all["amount"].sum() if not cc_all.empty else 0
@@ -199,9 +203,13 @@ def render_credit_card_status(mdf, df):
     cc_due = pd.DataFrame()
 
     if status_col:
-        cc_due = cc_all[
-            cc_all[status_col].astype(str).str.lower().str.contains("outstanding", na=False)
-        ]
+      cc_due = cc_all[
+          cc_all[status_col]
+          .astype(str)
+          .str.strip()
+          .str.lower()
+          .str.contains("outstanding", na=False)
+    ]
 
     total_due = cc_due["amount"].sum() if not cc_due.empty else 0
 
