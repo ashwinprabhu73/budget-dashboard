@@ -304,7 +304,16 @@ Ashwin
     with col2:
         html = f"""
 <div class="block">
-<div class="gold">Harshita</div>
+<div style="
+    font-size:20px;
+    font-weight:700;
+    color:#60a5fa;
+    border-left:4px solid #60a5fa;
+    padding-left:10px;
+    margin-bottom:10px;
+">
+Harshita
+</div>
 
 <div class="label">Total Spent</div>
 <div class="gold value">₹{h_spent:,.0f}</div>
