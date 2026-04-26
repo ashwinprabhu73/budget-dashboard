@@ -334,11 +334,25 @@ Harshita
 # =========================
 # DATA
 # =========================
-sheet = st.sidebar.text_input("Paste Google Sheet URL/ID")
+if "sheet" not in st.session_state:
+    st.session_state.sheet = ""
+
+if "data_loaded" not in st.session_state:
+    st.session_state.data_loaded = False
+
+sheet_input = st.sidebar.text_input(
+    "Paste Google Sheet URL/ID",
+    value=st.session_state.sheet
+)
+
+if st.sidebar.button("Load Data"):
+    st.session_state.sheet = sheet_input
+    st.session_state.data_loaded = True
+
 df = pd.DataFrame()
 
-if sheet:
-    df = preprocess(load_sheet(extract_sheet_id(sheet)))
+if st.session_state.data_loaded and st.session_state.sheet:
+    df = preprocess(load_sheet(extract_sheet_id(st.session_state.sheet)))
 
 # =========================
 # DASHBOARD
