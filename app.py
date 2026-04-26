@@ -235,6 +235,10 @@ def render_credit_card_status(mdf, df):
         amt = r["amount"]
 
         bank_html += f"<div style='color:#ef4444; margin-bottom:8px;'>● {bank_name} — ₹{amt:,.0f}</div>"
+    if total_due == 0:
+       due_html = f"<div class='green value'>₹{total_due:,.0f}</div>"
+    else:
+       due_html = f"<div class='red value'>₹{total_due:,.0f}</div>"
     html = f"""
     <div class="block">
     <div class="label">Total Spent (Credit Card)</div>
