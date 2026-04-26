@@ -200,7 +200,7 @@ def render_credit_card_status(mdf, df):
 
     if status_col:
         cc_due = cc_all[
-            cc_all[status_col].astype(str).str.lower() == "credit card bill outstanding"
+            cc_all[status_col].astype(str).str.lower().str.contains("outstanding", na=False)
         ]
 
     total_due = cc_due["amount"].sum() if not cc_due.empty else 0
