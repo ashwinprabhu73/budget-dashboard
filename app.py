@@ -543,8 +543,20 @@ if menu == "Dashboard" and not df.empty:
     a_col = find_inhand(cols, "ashwin")
     h_col = find_inhand(cols, "harshita")
 
-    a_in = year_df[a_col].dropna().iloc[-1] if a_col and not year_df[a_col].dropna().empty else 0
-    h_in = year_df[h_col].dropna().iloc[-1] if h_col and not year_df[h_col].dropna().empty else 0
+    def get_latest_inhand(df, col):
+        if not col or col not in df.columns:
+           return 0
+
+        temp = df[[col, "date"]].dropna()
+
+        if temp.empty:
+            return 0
+
+        return temp.sort_values("date")[col].iloc[-1]
+
+
+    a_in = get_latest_inhand(mdf, a_col)
+    h_in = get_latest_inhand(mdf, h_col)
 
     # =========================
     # SAVINGS
